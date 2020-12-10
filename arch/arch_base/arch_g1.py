@@ -64,12 +64,9 @@ class ARCH_g1():
 		pd_dist = tfd.Normal(loc=np.mean(self.reals), scale=np.std(self.reals))
 		pg_dist = tfd.Normal(loc=np.mean(self.fakes), scale=np.std(self.fakes))
 
-		# basis = np.expand_dims(np.linspace(-10., 10., int(1e4), dtype=np.float32), axis = 1)
 		basis = np.expand_dims(np.linspace(self.MIN, self.MAX, int(1e4), dtype=np.float32), axis = 1)
 		pd_vals = pd_dist.prob(basis)
-		# pd_vals = pd_vals/max(pd_vals)
 		pg_vals = pg_dist.prob(basis)
-		# pg_vals = pg_vals/max(pg_vals)
 
 		disc = self.discriminator(basis,training = False)
 		disc = disc - min(disc)
@@ -91,22 +88,22 @@ class ARCH_g1():
 			from matplotlib.backends.backend_pdf import PdfPages
 			plt.rc('text', usetex=False)
 			
-			# from matplotlib.backends.backend_pgf import FigureCanvasPgf
-			# matplotlib.backend_bases.register_backend('pdf', FigureCanvasPgf)
-			# from matplotlib.backends.backend_pgf import PdfPages
-			# plt.rcParams.update({
-			# 	"pgf.texsystem": "pdflatex",
-			# 	"font.family": "serif",  # use serif/main font for text elements
-			# 	"font.size":10,	
-			# 	"font.serif": [], 
-			# 	"text.usetex": True,     # use inline math for ticks
-			# 	"pgf.rcfonts": False,    # don't setup fonts from rc parameters
-			# 	# "pgf.preamble": [
-			# 	# 	 r"\usepackage[utf8x]{inputenc}",
-			# 	# 	 r"\usepackage[T1]{fontenc}",
-			# 	# 	 r"\usepackage{cmbright}",
-			# 	# 	 ]
-			# })
+			from matplotlib.backends.backend_pgf import FigureCanvasPgf
+			matplotlib.backend_bases.register_backend('pdf', FigureCanvasPgf)
+			from matplotlib.backends.backend_pgf import PdfPages
+			plt.rcParams.update({
+				"pgf.texsystem": "pdflatex",
+				"font.family": "serif",  # use serif/main font for text elements
+				"font.size":10,	
+				"font.serif": [], 
+				"text.usetex": True,     # use inline math for ticks
+				"pgf.rcfonts": False,    # don't setup fonts from rc parameters
+				# "pgf.preamble": [
+				# 	 r"\usepackage[utf8x]{inputenc}",
+				# 	 r"\usepackage[T1]{fontenc}",
+				# 	 r"\usepackage{cmbright}",
+				# 	 ]
+			})
 
 		with PdfPages(path+'_Classifier.pdf') as pdf:
 

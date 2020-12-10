@@ -28,12 +28,6 @@ class ARCH_gmm8():
 		enc1 = tf.keras.layers.Dense(64, kernel_initializer=init_fn, use_bias = True, bias_initializer = bias_init_fn)(inputs)
 		enc1 = tf.keras.layers.LeakyReLU()(enc1)
 
-		# enc11 = tf.keras.layers.Dense(64, kernel_initializer=init_fn, use_bias = True, activation = 'tanh')(enc1)
-		# enc11 = tf.keras.layers.ReLU()(enc11)
-		
-		# enc12 = tf.keras.layers.Dense(int(self.latent_dims*10), kernel_initializer=init_fn, use_bias = True, activation = 'sigmoid')(enc11)
-		# enc12 = tf.keras.layers.ReLU()(enc12)
-
 		enc2 = tf.keras.layers.Dense(32, kernel_initializer=init_fn, use_bias = True, bias_initializer = bias_init_fn)(enc1)
 		# enc2 = tf.keras.layers.Activation( activation = 'tanh')(enc2)
 		enc2 = tf.keras.layers.Activation( activation = 'sigmoid')(enc2)
@@ -54,26 +48,6 @@ class ARCH_gmm8():
 
 		return model
 
-		# init_fn = tf.keras.initializers.glorot_uniform()
-		# init_fn = tf.function(init_fn, autograph=False)
-
-		# inputs = tf.keras.Input(shape=(self.noise_dims,))
-
-		# enc1 = tf.keras.layers.Dense(20, kernel_initializer=init_fn, use_bias = True)(inputs)
-		# enc1 = tf.keras.layers.ReLU()(enc1)
-
-		# enc2 = tf.keras.layers.Dense(40, kernel_initializer=init_fn, use_bias = True)(enc1)
-		# enc2 = tf.keras.layers.ReLU()(enc2)
-
-		# enc3 = tf.keras.layers.Dense(8, kernel_initializer=init_fn, use_bias = True)(enc2)
-		# # enc3 = tf.keras.layers.ReLU()(enc3)
-
-		# enc4 = tf.keras.layers.Dense(2, kernel_initializer=init_fn, use_bias = True)(enc3)
-		# # enc4 = tf.keras.layers.ReLU(max_value = 1.)(enc4)
-
-		# model = tf.keras.Model(inputs = inputs, outputs = enc4)
-
-		# return model
 
 	def discriminator_model_gmm8(self):
 		init_fn = tf.keras.initializers.glorot_uniform()
@@ -133,7 +107,7 @@ class ARCH_gmm8():
 			ax1.set_ylim([self.MIN,self.MAX])
 			ax1.scatter(self.reals[:,0], self.reals[:,1], c='r', linewidth = 1, marker = '.', alpha = 0.5)
 			ax1.scatter(self.fakes[:,0], self.fakes[:,1], c='g', linewidth = 1, marker = '.', alpha = 0.5)
-			# ax1.legend(loc = 'upper right')
+			ax1.legend(loc = 'upper right')
 			fig1.tight_layout()
 			pdf.savefig(fig1)
 			plt.close(fig1)

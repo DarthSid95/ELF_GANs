@@ -110,49 +110,6 @@ flags.DEFINE_float('lr2_Disc', 0.0, """learning rate""")
 
 
 
-def email_success():
-	import smtplib, ssl
-
-	port = 587  # For starttls
-	smtp_server = "smtp.gmail.com"
-	sender_email = "darthsidcodes@gmail.com"
-	receiver_email = "darthsidcodes@gmail.com"
-	password = "kamehamehaX100#"
-	SUBJECT = "Execution Completed"
-	TEXT = "Execution of code: "+str(gan.run_id)+" completed Successfully."
-	message = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT) 
-	context = ssl.create_default_context()
-	with smtplib.SMTP(smtp_server, port) as server:
-		server.ehlo()  # Can be omitted
-		server.starttls(context=context)
-		server.ehlo()  # Can be omitted
-		server.login(sender_email, password)
-		server.sendmail(sender_email, receiver_email, message)
-
-
-def email_error(error):
-	traceback.print_exc()
-	error = traceback.format_exc()
-	import smtplib, ssl
-
-	port = 587  # For starttls
-	smtp_server = "smtp.gmail.com"
-	sender_email = "darthsidcodes@gmail.com"
-	receiver_email = "darthsidcodes@gmail.com"
-	password = "kamehamehaX100#"
-	SUBJECT = "An Error Occured"
-	TEXT = "Error: "+error
-	message = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT) 
-	context = ssl.create_default_context()
-	with smtplib.SMTP(smtp_server, port) as server:
-		server.ehlo()  # Can be omitted
-		server.starttls(context=context)
-		server.ehlo()  # Can be omitted
-		server.login(sender_email, password)
-		server.sendmail(sender_email, receiver_email, message)
-
-
-
 FLAGS(sys.argv)
 from models import *
 
@@ -194,33 +151,23 @@ if __name__ == '__main__':
 
 	###	EXISTING Variants:
 	##
-	##	(1) SGAN - 
-	##		(A) Base
-	##		(B) RumiGAN
-	##		(C) ACGAN
-	##
-	##	(2) LSGAN - 
-	##		(A) Base
-	##		(B) RumiGAN
 	##
 	##	(3) WGAN - 
 	##		(A) Base
-	##		(B) ELeGANt
-	##		(C) Rumi
+	##		(B) ELF_GAN
 	##
 	##	(4) WAE - 
 	##		(A) Base
-	##		(B) ELeGANt
+	##		(B) FS
 	##
 	##
 	### -----------------
-	### Have to add CycleGAN for future work. Potentially a cGAN to separate out ACGAN style stuff from cGAN. Currently, no plans.
 
 	gan_call = FLAGS.gan + '_' + FLAGS.topic + '(FLAGS_dict)'
 
 	# with tf.device('/GPU:'+FLAGS.device):
 	try:
-		print('trying')
+		print('GAN setup')
 		gan = eval(gan_call)
 		gan.initial_setup()
 		gan.main_func()
@@ -229,7 +176,6 @@ if __name__ == '__main__':
 		if gan.mode == 'train':
 			print(gan.mode)
 			gan.train()
-			email_success()
 			gan.test()
 
 		if gan.mode == 'save_model':
@@ -238,14 +184,10 @@ if __name__ == '__main__':
 		if gan.mode == 'test':
 			gan.test()
 
-		# if gan.mode == 'fid':
-		# 	gan.update_FID()
-
 		if gan.mode == 'metrics':
 			gan.eval_metrics()
 
 	except Exception as e:
-		email_error(str(e))
 		print("Exiting Execution due to error.")
 		exit(0)
 

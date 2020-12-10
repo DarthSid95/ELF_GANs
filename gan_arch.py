@@ -16,8 +16,6 @@ import shutil
 
 import tensorflow_probability as tfp
 tfd = tfp.distributions
-# import tensorflow_gan as tfgan
-# import prd_score as prd
 
 ##FOR FID
 from numpy import cov
@@ -25,24 +23,8 @@ from numpy import trace
 from scipy.linalg import sqrtm
 import scipy as sp
 from numpy import iscomplexobj
-# from gan_data import *
-# from arch_mnist import *
-# from arch_u1 import *
 
 
-####NOTE : 15thJune2020 - Cleaned up KLD calculator. sorted folder creation ops here. Need to remove them elsewheres. Need to clean print KLD,FID function.
-
-# FLAGS = flags.FLAGS
-# FLAGS(sys.argv)
-# # tf.keras.backend.set_floatx('float64')
-
-# if FLAGS.loss == 'deq':
-# 	from arch/arch_deq import *
-# elif FLAGS.topic == 'CycleGAN':
-# 	from arch_CycleGAN import *
-# elif FLAGS.topic == 'RumiGAN':
-# 	from arch_RumiGAN import *
-# else:
 from arch import *
 from ops import *
 
@@ -58,26 +40,12 @@ class GAN_ARCH( eval('ARCH_'+FLAGS.data)): #mnist, ARCH_celeba, ARCG_g1, ARCH_g2
 		''' Defines anything common to te diofferent GAN approaches. Architectures of Gen and Disc, all flags,'''
 		for name,val in FLAGS_dict.items():
 			exec('self.'+name+' = val')
-		# self.topic = topic
-		# self.data = data
-		# self.loss = loss
-		# self.gan_name = gan
-		# self.mode = mode
-		# self.colab = colab
+
 
 		if self.colab and (self.data in ['mnist', 'svhn', 'celeba', 'cifar10', 'ukiyoe']):
 			self.bar_flag = 0
 		else:
 			self.bar_flag = 1
-
-		# self.metrics = metrics
-	
-		# self.num_parallel_calls = num_parallel_calls
-		# self.saver = saver
-		# self.resume = resume
-		# self.res_flag = res_file
-		# self.save_all = save_all_models
-		# self.paper = paper
 
 		if self.device == '-1':
 			self.device = '/CPU'
@@ -119,13 +87,6 @@ class GAN_ARCH( eval('ARCH_'+FLAGS.data)): #mnist, ARCH_celeba, ARCG_g1, ARCH_g2
 			self.num_test_images = 20
 		else:
 			self.num_test_images = 10
-		# if self.topic in['ACGAN', 'cGAN']:
-		# 	### Need to FIX
-		# 	self.num_to_print = 10
-			# if self.data != 'celeba':
-			# 	self.num_to_print = self.num_classes**2
-			# else:
-			# 	self.num_to_print = self.num_classes*50
 
 
 
@@ -136,12 +97,8 @@ class GAN_ARCH( eval('ARCH_'+FLAGS.data)): #mnist, ARCH_celeba, ARCG_g1, ARCH_g2
 			self.postfix = {0: f'{0:3.0f}', 1: f'{0:2.3e}', 2: f'{0:2.3e}'}
 			self.bar_format = '{n_fmt}/{total_fmt} |{bar}| {rate_fmt}  Batch: {postfix[0]} ETA: {remaining} Elapsed Time: {elapsed}  D_Loss: {postfix[1]}  G_Loss: {postfix[2]}'
 
-		# self.log_dir = 'logs/NIPS_May2020/RumiGAN_Cifar10_Compare/'
-		# self.log_dir = 'logs/NIPS_May2020/RumiGAN_Fashion_Compare/RandomClasses/NewJUne/'#'logs/NIPS_May2020/RumiGAN_MNIST_Compares/Singles5MAny/' #'logs/NIPS_May2020/RumiGAN_CelebA_Compare/Males/'#'logs/NIPS_Mar2020/RumiGAN_Compares/Compare_Sharps/'
 
 		### NEEDS FIXING...NEEDS A FLAG
-		# log_dir = 'logs/Log_Folder_03072020/'
-		# log_dir = None
 		if self.log_folder == 'default':
 			today = date.today()
 			self.log_dir = 'logs/Log_Folder_'+today.strftime("%d%m%Y")+'/'
@@ -262,31 +219,14 @@ class GAN_ARCH( eval('ARCH_'+FLAGS.data)): #mnist, ARCH_celeba, ARCG_g1, ARCH_g2
 	def generate_and_save_batch(self,epoch):
 		noise = tf.random.normal([self.num_to_print*self.num_to_print, self.noise_dims], mean = self.noise_mean, stddev = self.noise_stddev)
 
-		if self.topic == 'ImNoise2Im':
-			for noise_batch in self.noise_dataset:
-				noise = noise_batch[0:(self.num_to_print*self.num_to_print)]
-				break
 		path = self.impath + str(self.total_count.numpy())
 		#### AAE are Autoencoders, not generative models.
 		if self.gan == 'WAE':
 			predictions = self.Decoder(self.Encoder(self.reals[0:self.num_to_print*self.num_to_print], training = False), training = False)
-		elif self.topic in ['cGAN', 'ACGAN']:
-			class_vec = []
-			for i in range(self.num_classes):
-				class_vec.append(i*np.ones(int((self.num_to_print**2)/self.num_classes)))
-			class_final = np.expand_dims(np.concatenate(class_vec,axis = 0),axis = 1)
-			if self.label_style == 'base':
-				class_final = tf.one_hot(np.squeeze(class_final), depth = self.num_classes)
-			predictions = self.generator([noise,class_final], training=False)
 		else:
 			predictions = self.generator(noise, training=False)
 			if self.loss == 'FS':
-				if self.latent_kind in ['AE','AAE']:
-					predictions = self.Decoder(predictions, training= False)
-		# if self.mode == 'test':
-		# 	self.fakes = predictions
-		# if not self.paper:
-		if self.gan == 'WAE' or self.data not in ['celeba', 'ukiyoe']:
+		if self.gan == 'WAE':
 			predictions = (predictions + 1.0)/2.0
 		eval(self.show_result_func)
 

@@ -9,20 +9,6 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-'''
-REPLACE GENERATOR WITH COMMENTED OUT AUTOENCODER LATENT SPACE GENERATOR!!!!!,,,, FIX TRAIN_STEP ACCORDINGLY
-'''
-
-### MINIBATHC DISCRIMINATOR!?!?
-"""def minibatch(input, num_kernels=5, kernel_dim=3):
-x = linear(input, num_kernels * kernel_dim, scope='minibatch', stddev=0.02)
-activation = tf.reshape(x, (-1, num_kernels, kernel_dim))
-diffs = tf.expand_dims(activation, 3) - \
-tf.expand_dims(tf.transpose(activation, [1, 2, 0]), 0)
-abs_diffs = tf.reduce_sum(tf.abs(diffs), 2)
-minibatch_features = tf.reduce_sum(tf.exp(-abs_diffs), 2)
-return tf.concat([input, minibatch_features], 1)"""
-
 
 class ARCH_cifar10():
 
@@ -43,9 +29,7 @@ class ARCH_cifar10():
 		init_fn = tf.function(init_fn, autograph=False)
 		bias_init_fn = tf.keras.initializers.Zeros()
 		bias_init_fn = tf.function(bias_init_fn, autograph=False)
-		# else:
-		# 	init_fn = tf.random_normal_initializer(mean=0.0, stddev=0.001, seed=None)
-		# 	init_fn = tf.function(init_fn, autograph=False)
+
 
 		inputs = tf.keras.Input(shape=(self.output_size,self.output_size,3)) #64x64x3
 
@@ -73,16 +57,6 @@ class ARCH_cifar10():
 		enc4 = tf.keras.layers.LeakyReLU()(enc4)
 		# enc4 = tf.keras.layers.Activation( activation = 'tanh')(enc4)
 
-		# enc5 = tf.keras.layers.Conv2D(512, 4, strides=2, padding='same',kernel_initializer=init_fn, use_bias=True)(enc4) #2x2x128
-		# enc5 = tf.keras.layers.BatchNormalization()(enc5)
-		# # enc5 = tf.keras.layers.Dropout(0.5)(enc5)
-		# enc5 = tf.keras.layers.LeakyReLU()(enc5)
-		# enc5 = tf.keras.layers.Activation( activation = 'tanh')(enc5)
-
-		# enc6 = tf.keras.layers.Conv2D(1024, 4, strides=1, padding='same',kernel_initializer=init_fn, use_bias=True)(enc5) #1x1xlatent
-		# enc6 = tf.keras.layers.BatchNormalization()(enc6)
-		# enc6 = tf.keras.layers.LeakyReLU()(enc6)
-		# # enc6 = tf.keras.layers.Activation( activation = 'tanh')(enc6)
 
 
 		dense = tf.keras.layers.Flatten()(enc4)
@@ -93,26 +67,7 @@ class ARCH_cifar10():
 
 		if self.loss == 'FS':
 			enc  = tf.keras.layers.Lambda(ama_relu)(enc)
-		# enc =  tf.keras.layers.Activation(activation = 'sigmoid')(enc)
 
-		# if self.noise_kind == 'gaussian_1m1':
-		# 	enc =  tf.keras.layers.Activation(activation = 'tanh')(enc)
-		# elif self.noise_kind == 'gaussian_02':
-		# 	enc = tf.keras.layers.ReLU(max_value = 2.)(enc)
-		# 	# enc =  tf.keras.layers.Activation(activation = 'sigmoid')(enc)
-		# 	# enc = tf.math.scalar_mul(5., enc)
-		# elif self.noise_kind == 'gaussian_01':
-		# 	enc =  tf.keras.layers.Activation(activation = 'sigmoid')(enc)
-		# elif self.noise_kind == 'gaussian_s2':
-		# 	enc =  tf.keras.layers.Activation(activation = 'tanh')(enc)
-		# 	enc = tf.math.scalar_mul(6., enc)
-		# elif self.noise_kind == 'gaussian':
-		# 	enc  = tf.keras.layers.Lambda(ama_relu)(enc)
-
-
-		# enc = tf.math.scalar_mul(10., enc)
-		# enc = tf.keras.layers.ReLU(max_value = 1., threshold=-1.)(enc)
-		# enc =  tf.keras.layers.Activation( activation = 'sigmoid')(enc)
 
 		encoded = tf.keras.Input(shape=(self.latent_dims,))
 
@@ -138,17 +93,6 @@ class ARCH_cifar10():
 		denc1 = tf.keras.layers.LeakyReLU()(denc3)
 		# denc1 = tf.keras.layers.Activation( activation = 'tanh')(denc3)
 
-		# denc2 = tf.keras.layers.Conv2DTranspose(128, 4, strides=2,padding='same',kernel_initializer=init_fn,use_bias=True)(denc3) #16x16x128
-		# denc2 = tf.keras.layers.BatchNormalization()(denc2)
-		# # denc2 = tf.keras.layers.Dropout(0.5)(denc2)
-		# denc2 = tf.keras.layers.LeakyReLU()(denc2)
-		# # denc2 = tf.keras.layers.Activation( activation = 'tanh')(denc2)
-
-		# denc1 = tf.keras.layers.Conv2DTranspose(64, 4, strides=1,padding='same',kernel_initializer=init_fn,use_bias=True)(denc2) #32x32x64
-		# denc1 = tf.keras.layers.BatchNormalization()(denc1)
-		# # denc1 = tf.keras.layers.Dropout(0.5)(denc1)
-		# denc1 = tf.keras.layers.LeakyReLU()(denc1)
-		# # denc1 = tf.keras.layers.Activation( activation = 'tanh')(denc1)
 
 		out = tf.keras.layers.Conv2DTranspose(3, 4,strides=1,padding='same', kernel_initializer=init_fn, use_bias = True, bias_initializer = bias_init_fn)(denc1) #64x64x3
 		out =  tf.keras.layers.Activation(activation = 'tanh')(out)
@@ -203,18 +147,6 @@ class ARCH_cifar10():
 		ax1.axis("off")
 		ax1.imshow(np.clip(images_on_grid,0.,1.))
 
-		# fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(5, 5))
-		# for i in range(size_figure_grid):
-		# 	for j in range(size_figure_grid):
-		# 		ax[i, j].get_xaxis().set_visible(False)
-		# 		ax[i, j].get_yaxis().set_visible(False)
-
-		# for k in range(size_figure_grid*size_figure_grid):
-		# 	i = k // size_figure_grid
-		# 	j = k % size_figure_grid
-		# 	ax[i, j].cla()
-		# 	im = images[k,:,:,:]
-		# 	ax[i, j].imshow(im, cmap='gray')
 
 		label = 'Epoch {0}'.format(num_epoch)
 		plt.title(label, fontsize=8)
@@ -235,23 +167,8 @@ class ARCH_cifar10():
 		ax1.axis("off")
 		ax1.imshow(np.clip(images_on_grid,0.,1.))
 
-		# fig1, ax1 = plt.subplots(size_figure_grid, size_figure_grid, figsize=(5, 5))
-		# for i in range(size_figure_grid):
-		# 	for j in range(size_figure_grid):
-		# 		ax1[i, j].get_xaxis().set_visible(False)
-		# 		ax1[i, j].get_yaxis().set_visible(False)
-
-		# for k in range(size_figure_grid*size_figure_grid):
-		# 	i = k // size_figure_grid
-		# 	j = k % size_figure_grid
-		# 	ax1[i, j].cla()
-		# 	gt = self.reals[k,:,:,:]
-		# 	ax1[i, j].imshow(gt, cmap='gray')
-
 		label = 'Epoch {0}'.format(num_epoch)
 		plt.title(label, fontsize=8)
-		# fig1.text(0.5, 0.04, label, ha='center')
-		# fig1.tight_layout()
 		if save:
 			plt.tight_layout()
 			plt.savefig(path.split('.')[0]+'gt.png')
@@ -270,13 +187,8 @@ class ARCH_cifar10():
 		def data_preprocess(image):
 			with tf.device('/CPU'):
 				image = tf.image.resize(image,[299,299])
-				# This will convert to float values in [0, 1]
-
-				# image = tf.divide(image,255.0)
 				image = tf.scalar_mul(2.0,image)
 				image = tf.subtract(image,1.0)
-
-				# image = tf.image.convert_image_dtype(image, tf.float16)
 			return image
 
 
@@ -286,10 +198,6 @@ class ARCH_cifar10():
 			random_points = tf.keras.backend.random_uniform([self.FID_num_samples], minval=0, maxval=int(self.fid_train_images.shape[0]), dtype='int32', seed=None)
 			print(random_points)
 			self.fid_train_images = self.fid_train_images[random_points]
-			# self.fid_train_images = tf.image.resize(self.fid_train_images, [128,128])
-			# self.fid_train_images = tf.subtract(self.fid_train_images,0.50)
-			# self.fid_train_images = tf.scalar_mul(2.0,self.fid_train_images)
-			# self.fid_images = self.fid_train_images.numpy()
 
 			# self.fid_train_images_names = self.fid_train_images[random_points]
 
@@ -305,7 +213,6 @@ class ARCH_cifar10():
 
 		if self.mode == 'fid':
 			print(self.checkpoint_dir)
-			# print('logs/130919_ELeGANt_mnist_lsgan_base_01/130919_ELeGANt_mnist_lsgan_base_Results_checkpoints')
 			self.checkpoint.restore(tf.train.latest_checkpoint(self.checkpoint_dir))
 			print('Models Loaded Successfully')
 
@@ -337,18 +244,3 @@ class ARCH_cifar10():
 			# print(self.act1.shape, self.act2.shape)
 			self.eval_FID()
 			return
-
-
-		# with tf.device('/CPU'):
-		# 	# print(self.fid_train_images.shape)
-		# 	preds = self.Decoder(self.get_noise(self.fid_batch_size), training=False)
-		# 	# preds = preds[:,:,:].numpy()		
-		# 	preds = tf.image.resize(preds, [128,128])
-		# 	preds = tf.scalar_mul(2.0,preds)
-		# 	preds = tf.subtract(preds,1.0)
-		# 	preds = preds.numpy()
-
-		# 	self.act1 = self.FID_model.predict(self.fid_images)
-		# 	self.act2 = self.FID_model.predict(preds)
-		# 	self.eval_FID()
-		# 	return

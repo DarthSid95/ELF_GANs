@@ -9,19 +9,6 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-'''
-REPLACE GENERATOR WITH COMMENTED OUT AUTOENCODER LATENT SPACE GENERATOR!!!!!,,,, FIX TRAIN_STEP ACCORDINGLY
-'''
-
-### MINIBATHC DISCRIMINATOR!?!?
-"""def minibatch(input, num_kernels=5, kernel_dim=3):
-x = linear(input, num_kernels * kernel_dim, scope='minibatch', stddev=0.02)
-activation = tf.reshape(x, (-1, num_kernels, kernel_dim))
-diffs = tf.expand_dims(activation, 3) - \
-tf.expand_dims(tf.transpose(activation, [1, 2, 0]), 0)
-abs_diffs = tf.reduce_sum(tf.abs(diffs), 2)
-minibatch_features = tf.reduce_sum(tf.exp(-abs_diffs), 2)
-return tf.concat([input, minibatch_features], 1)"""
 
 
 class ARCH_ukiyoe():
@@ -69,30 +56,14 @@ class ARCH_ukiyoe():
 		enc4 = tf.keras.layers.LeakyReLU()(enc4)
 		# enc4 = tf.keras.layers.Activation( activation = 'tanh')(enc4)
 
-		# enc5 = tf.keras.layers.Conv2D(512, 4, strides=1, padding='same',kernel_initializer=init_fn, use_bias=True)(enc4) #2x2x128
-		# enc5 = tf.keras.layers.BatchNormalization()(enc5)
-		# # enc5 = tf.keras.layers.Dropout(0.5)(enc5)
-		# enc5 = tf.keras.layers.LeakyReLU()(enc5)
-		# enc5 = tf.keras.layers.Activation( activation = 'tanh')(enc5)
-
-
-		# enc6 = tf.keras.layers.Conv2D(512, 4, strides=1, padding='same',kernel_initializer=init_fn, use_bias=True)(enc5) #1x1xlatent
-		# enc6 = tf.keras.layers.BatchNormalization()(enc6)
-		# enc6 = tf.keras.layers.Activation( activation = 'tanh')(enc6)
 
 
 		dense = tf.keras.layers.Flatten()(enc4)
 
 		dense = tf.keras.layers.Dense(self.latent_dims, kernel_initializer = init_fn, use_bias = True, bias_initializer = bias_init_fn)(dense)
 		enc = tf.keras.layers.Dense(self.latent_dims, kernel_initializer = init_fn, use_bias = True, bias_initializer = bias_init_fn)(dense)
-		# enc =  tf.keras.layers.Activation( activation = 'sigmoid')(enc)
-		# enc =  tf.keras.layers.Activation( activation = 'tanh')(enc)
-		# enc = tf.math.scalar_mul(10., enc)
-		# enc = tf.keras.layers.ReLU(max_value = 6., threshold=-6.)(enc)
-		# enc = tf.keras.layers.ReLU(max_value = 2.)(enc)
-		# if self.loss != 'base':
+	
 		enc  = tf.keras.layers.Lambda(ama_relu)(enc)
-		# enc =  tf.keras.layers.Activation( activation = 'sigmoid')(enc)
 
 
 		encoded = tf.keras.Input(shape=(self.latent_dims,))
@@ -118,20 +89,6 @@ class ARCH_ukiyoe():
 		# denc3 = tf.keras.layers.Dropout(0.5)(denc3)
 		denc1 = tf.keras.layers.LeakyReLU()(denc3)
 		# denc1 = tf.keras.layers.Activation( activation = 'tanh')(denc3)
-
-
-		# denc2 = tf.keras.layers.Conv2DTranspose(128, 4, strides=1,padding='same',kernel_initializer=init_fn,use_bias=True)(denc3) #16x16x128
-		# denc2 = tf.keras.layers.BatchNormalization()(denc2)
-		# # denc2 = tf.keras.layers.Dropout(0.5)(denc2)
-		# denc2 = tf.keras.layers.LeakyReLU()(denc2)
-		# denc2 = tf.keras.layers.Activation( activation = 'tanh')(denc2)
-
-
-		# denc1 = tf.keras.layers.Conv2DTranspose(64, 4, strides=1,padding='same',kernel_initializer=init_fn,use_bias=True)(denc2) #32x32x64
-		# denc1 = tf.keras.layers.BatchNormalization()(denc1)
-		# # denc1 = tf.keras.layers.Dropout(0.5)(denc1)
-		# denc1 = tf.keras.layers.LeakyReLU()(denc1)
-		# denc1 = tf.keras.layers.Activation( activation = 'tanh')(denc1)
 
 		out = tf.keras.layers.Conv2DTranspose(3, 4,strides=1,padding='same', kernel_initializer=init_fn, use_bias = True, bias_initializer = bias_init_fn)(denc1) #64x64x3
 		out =  tf.keras.layers.Activation( activation = 'tanh')(out)
@@ -167,10 +124,7 @@ class ARCH_ukiyoe():
 
 
 	def show_result_ukiyoe(self, images=None, num_epoch=0, show = False, save = False, path = 'result.png'):
-
-		# if num_epoch%2 == 0 and num_epoch>self.AE_count:
-		# print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False) ))
-		if self.res_flag:# and num_epoch>self.AE_count:
+		if self.res_flag:
 			self.res_file.write("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False), np.mean(self.fakes_enc, axis = 0), np.cov(self.fakes_enc,rowvar = False) ))
 		size_figure_grid = 5
 
@@ -248,23 +202,20 @@ class ARCH_ukiyoe():
 			self.fid_image_dataset = self.fid_image_dataset.map(data_reader_faces,num_parallel_calls=int(self.num_parallel_calls))
 			self.fid_image_dataset = self.fid_image_dataset.batch(self.fid_batch_size)
 
-			# for element in self.fid_image_dataset:
-			# 	self.fid_images = element
-			# 	break
+
 			if self.FID_kind != 'latent':
 				self.UkiyoE_Classifier()
 
 
 		if self.mode == 'fid':
 			print(self.checkpoint_dir)
-			# print('logs/130919_ELeGANt_mnist_lsgan_base_01/130919_ELeGANt_mnist_lsgan_base_Results_checkpoints')
+
 			self.checkpoint.restore(tf.train.latest_checkpoint(self.checkpoint_dir))
 			print('Models Loaded Successfully')
 
 		with tf.device(self.device):
 			
 			for image_batch in self.fid_image_dataset:
-				# print(self.fid_train_images.shape)
 
 				if self.FID_kind == 'latent':
 					## Measure FID on the latent Gaussians 
@@ -273,10 +224,7 @@ class ARCH_ukiyoe():
 					act2 = preds
 				else:
 					preds = self.Decoder(self.get_noise(tf.constant(100)), training=False)
-					# preds = preds[:,:,:].numpy()		
 					preds = tf.image.resize(preds, [299,299])
-					# preds = tf.scalar_mul(2.,preds)
-					# preds = tf.subtract(preds,1.0)
 					preds = preds.numpy()
 
 					act1 = self.FID_model.predict(image_batch)

@@ -28,23 +28,11 @@ class WAE_ELeGANt(GAN_WAE):
 
 		GAN_WAE.__init__(self,FLAGS_dict)
 
-		# self.lambda_d = FLAGS_dict['lambda_d']
-
-		# self.latent_dims = FLAGS_dict['latent_dims']
-		# self.N = FLAGS_dict['latent_dims']
-		# self.sigma = FLAGS_dict['sigma']
-		# self.sigmul = FLAGS_dict['sigmul']
-
-		# self.noise_kind = FLAGS_dict['noise_kind']
-		# self.homo_flag = FLAGS_dict['homo_flag']
-
-
 		self.M = self.terms#FLAGS_dict['terms'] #Number of terms in FS
 
 		self.T = self.sigmul*self.sigma
 		self.W = np.pi/self.T
 		self.W0 = 1/self.T
-		# self.distribution = FLAGS_dict['distribution'] #'generic'
 		self.N = self.latent_dims
 		
 
@@ -106,14 +94,6 @@ class WAE_ELeGANt(GAN_WAE):
 			print("\n\n DISCRIMINATOR PART B MODEL: \n\n")
 			print(self.discriminator_B.summary())
 
-
-
-			# from flopco_keras import FlopCoKeras
-			# stats = FlopCoKeras(self.discriminator_B)
-
-			# print(f"FLOPs: {stats.total_flops}")
-			# print(f"MACs: {stats.total_macs}")
-			# print(f"Relative FLOPs: {stats.relative_flops}")
 
 			if self.res_flag == 1:
 				with open(self.run_loc+'/'+self.run_id+'_Models.txt','a') as fh:
@@ -179,7 +159,7 @@ class WAE_ELeGANt(GAN_WAE):
 				
 				with tf.device(self.device):
 					if epoch < self.AE_count:
-						self.pretrain_step_AE(image_batch)
+						self.pretrain_step_GAN(image_batch)
 					else:
 						self.train_step(image_batch)
 						self.eval_metrics()
@@ -237,45 +217,46 @@ class WAE_ELeGANt(GAN_WAE):
 
 	def test(self):
 		###### Random Saples
-		# for i in range(10):
-		# 	path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	noise = self.get_noise(self.batch_size)
-		# 	images = self.Decoder(noise)
+		for i in range(10):
+			path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			noise = self.get_noise(self.batch_size)
+			images = self.Decoder(noise)
 			
 
-		# 	sharpness = self.find_sharpness(images)
-		# 	try:
-		# 		sharpness_vec.append(sharpness)
-		# 	except:
-		# 		shaprpness_vec = [sharpness]
+			sharpness = self.find_sharpness(images)
+			try:
+				sharpness_vec.append(sharpness)
+			except:
+				shaprpness_vec = [sharpness]
 
-		# 	images = (images + 1.0)/2.0
-		# 	size_figure_grid = 10
-		# 	images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 	fig1 = plt.figure(figsize=(7,7))
-		# 	ax1 = fig1.add_subplot(111)
-		# 	ax1.cla()
-		# 	ax1.axis("off")
-		# 	if images_on_grid.shape[2] == 3:
-		# 		ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 	else:
-		# 		ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	plt.title(label)
-		# 	plt.tight_layout()
-		# 	# fig.text(0.5, 0.04, label, ha='center')
-		# 	plt.savefig(path)
-		# 	plt.close()
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			# fig.text(0.5, 0.04, label, ha='center')
+			plt.savefig(path)
+			plt.close()
 
-		# overall_sharpness = np.mean(np.array(shaprpness_vec))
-		# if self.mode == 'test':
-		# 	print("Random Sharpness - " + str(overall_sharpness))
-		# 	if self.res_flag:
-		# 		self.res_file.write("Random Sharpness - "+str(overall_sharpness))
-		# else:
-		# 	if self.res_flag:
-		# 		self.res_file.write("Random Sharpness - "+str(overall_sharpness))
+		###### Random Samples - Sharpness
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Random Sharpness - " + str(overall_sharpness))
+			if self.res_flag:
+				self.res_file.write("Random Sharpness - "+str(overall_sharpness))
+		else:
+			if self.res_flag:
+				self.res_file.write("Random Sharpness - "+str(overall_sharpness))
 
 		i = 0
 		for image_batch in self.train_dataset:
@@ -299,141 +280,127 @@ class WAE_ELeGANt(GAN_WAE):
 
 
 		# ####### Recon - Output
-		# for image_batch in self.recon_dataset:				
-		# 	path = self.impath+'_TestingRecon_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	images = self.Decoder(self.Encoder(image_batch))
-		# 	images = (images + 1.0)/2.0
-		# 	size_figure_grid = 10
-		# 	images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 	fig1 = plt.figure(figsize=(7,7))
-		# 	ax1 = fig1.add_subplot(111)
-		# 	ax1.cla()
-		# 	ax1.axis("off")
-		# 	if images_on_grid.shape[2] == 3:
-		# 		ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 	else:
-		# 		ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+		for image_batch in self.recon_dataset:				
+			path = self.impath+'_TestingRecon_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			images = self.Decoder(self.Encoder(image_batch))
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	plt.title(label)
-		# 	plt.tight_layout()
-		# 	plt.savefig(path)
-		# 	plt.close()
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			plt.savefig(path)
+			plt.close()
 
 		# ###### Recon - org
-		# 	path = self.impath+'_TestingReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	images = image_batch
-		# 	images = (images + 1.0)/2.0
-		# 	size_figure_grid = 10
-		# 	images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 	fig1 = plt.figure(figsize=(7,7))
-		# 	ax1 = fig1.add_subplot(111)
-		# 	ax1.cla()
-		# 	ax1.axis("off")
-		# 	if images_on_grid.shape[2] == 3:
-		# 		ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 	else:
-		# 		ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+			path = self.impath+'_TestingReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			images = image_batch
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	plt.title(label)
-		# 	plt.tight_layout()
-		# 	plt.savefig(path)
-		# 	plt.close()
-		# 	break
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			plt.savefig(path)
+			plt.close()
+			break
 
 		####### Interpolation
-		# num_interps = 10
-		# if self.mode == 'test':
-		# 	num_figs = int(400/(2*num_interps))
-		# else:
-		# 	num_figs = 9
-		# # there are 400 samples in the batch. to make 10x10 images, 
-		# for image_batch in self.interp_dataset:
-		# 	for j in range(num_figs):
-		# 		path = self.impath+'_TestingInterpolationV2_'+str(self.total_count.numpy())+'_TestCase_'+str(j)+'.png'
-		# 		current_batch = image_batch[2*num_interps*j:2*num_interps*(j+1)]
-		# 		image_latents = self.Encoder(current_batch)
-		# 		for i in range(num_interps):
-		# 			start = image_latents[i:1+i].numpy()
-		# 			end = image_latents[num_interps+i:num_interps+1+i].numpy()
-		# 			stack = np.vstack([start, end])
-		# 			# print(stack.shape)
-		# 			linfit = interp1d([1,num_interps+1], stack, axis=0)
-		# 			# try:
-		# 			# 	interp_latents=np.concatenate((interp_latents,linfit(list(range(1,num_interps+1)))),axis = 0)
-		# 			# except:
-		# 			# 	interp_latents = linfit(list(range(1,num_interps+1)))
-		# 			interp_latents = linfit(list(range(1,num_interps+1)))
-		# 			cur_interp_figs = self.Decoder(interp_latents)
+		num_interps = 10
+		if self.mode == 'test':
+			num_figs = int(400/(2*num_interps))
+		else:
+			num_figs = 9
+		# there are 400 samples in the batch. to make 10x10 images, 
+		for image_batch in self.interp_dataset:
+			for j in range(num_figs):
+				path = self.impath+'_TestingInterpolationV2_'+str(self.total_count.numpy())+'_TestCase_'+str(j)+'.png'
+				current_batch = image_batch[2*num_interps*j:2*num_interps*(j+1)]
+				image_latents = self.Encoder(current_batch)
+				for i in range(num_interps):
+					start = image_latents[i:1+i].numpy()
+					end = image_latents[num_interps+i:num_interps+1+i].numpy()
+					stack = np.vstack([start, end])
+					# print(stack.shape)
+					linfit = interp1d([1,num_interps+1], stack, axis=0)
+					# try:
+					# 	interp_latents=np.concatenate((interp_latents,linfit(list(range(1,num_interps+1)))),axis = 0)
+					# except:
+					# 	interp_latents = linfit(list(range(1,num_interps+1)))
+					interp_latents = linfit(list(range(1,num_interps+1)))
+					cur_interp_figs = self.Decoder(interp_latents)
 
-		# 			sharpness = self.find_sharpness(cur_interp_figs)
+					sharpness = self.find_sharpness(cur_interp_figs)
 
-		# 			try:
-		# 				sharpness_vec.append(sharpness)
-		# 			except:
-		# 				shaprpness_vec = [sharpness]
-		# 			cur_interp_figs_with_ref = np.concatenate((current_batch[i:1+i],cur_interp_figs.numpy(),current_batch[num_interps+i:num_interps+1+i]), axis = 0)
-		# 			# print(cur_interp_figs_with_ref.shape)
-		# 			try:
-		# 				batch_interp_figs = np.concatenate((batch_interp_figs,cur_interp_figs_with_ref),axis = 0)
-		# 			except:
-		# 				batch_interp_figs = cur_interp_figs_with_ref
-		# 			# print(batch_interp_figs.shape)
-
-
-		# 		# interpolation_figs = self.Decoder(interp_latents)
-
-		# 		images = (batch_interp_figs + 1.0)/2.0
-		# 		# print(images.shape)
-		# 		size_figure_grid = num_interps
-		# 		images_on_grid = self.image_grid(input_tensor = images, grid_shape = (size_figure_grid,size_figure_grid+2),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 		fig1 = plt.figure(figsize=(num_interps,num_interps+2))
-		# 		ax1 = fig1.add_subplot(111)
-		# 		ax1.cla()
-		# 		ax1.axis("off")
-		# 		if images_on_grid.shape[2] == 3:
-		# 			ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 		else:
-		# 			ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
-
-		# 		label = 'INTERPOLATED IMAGES AT ITERATION '+str(self.total_count.numpy())
-		# 		plt.title(label)
-		# 		plt.tight_layout()
-		# 		plt.savefig(path)
-		# 		plt.close()
-		# 		del batch_interp_figs
-
-		# overall_sharpness = np.mean(np.array(shaprpness_vec))
-		# if self.mode == 'test':
-		# 	print("Interpolation Sharpness - " + str(overall_sharpness))
-		# 	if self.res_flag:
-		# 		self.res_file.write("Interpolation Sharpness - "+str(overall_sharpness))
-		# else:
-		# 	if self.res_flag:
-		# 		self.res_file.write("nterpolation Sharpness - "+str(overall_sharpness))
+					try:
+						sharpness_vec.append(sharpness)
+					except:
+						shaprpness_vec = [sharpness]
+					cur_interp_figs_with_ref = np.concatenate((current_batch[i:1+i],cur_interp_figs.numpy(),current_batch[num_interps+i:num_interps+1+i]), axis = 0)
+					# print(cur_interp_figs_with_ref.shape)
+					try:
+						batch_interp_figs = np.concatenate((batch_interp_figs,cur_interp_figs_with_ref),axis = 0)
+					except:
+						batch_interp_figs = cur_interp_figs_with_ref
+					# print(batch_interp_figs.shape)
 
 
+				# interpolation_figs = self.Decoder(interp_latents)
+
+				images = (batch_interp_figs + 1.0)/2.0
+				# print(images.shape)
+				size_figure_grid = num_interps
+				images_on_grid = self.image_grid(input_tensor = images, grid_shape = (size_figure_grid,size_figure_grid+2),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+				fig1 = plt.figure(figsize=(num_interps,num_interps+2))
+				ax1 = fig1.add_subplot(111)
+				ax1.cla()
+				ax1.axis("off")
+				if images_on_grid.shape[2] == 3:
+					ax1.imshow(np.clip(images_on_grid,0.,1.))
+				else:
+					ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+
+				label = 'INTERPOLATED IMAGES AT ITERATION '+str(self.total_count.numpy())
+				plt.title(label)
+				plt.tight_layout()
+				plt.savefig(path)
+				plt.close()
+				del batch_interp_figs
+
+		###### Interpol samples - Sharpness
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Interpolation Sharpness - " + str(overall_sharpness))
+			if self.res_flag:
+				self.res_file.write("Interpolation Sharpness - "+str(overall_sharpness))
+		else:
+			if self.res_flag:
+				self.res_file.write("nterpolation Sharpness - "+str(overall_sharpness))
 
 
-	# def pretrain_step_AE(self,reals_all):
-	# 	with tf.device(self.device):
-	# 		self.reals = reals_all
 
-	# 	with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
 
-	# 		self.reals_enc = self.Encoder(self.reals, training = True)
-	# 		self.reals_dec = self.Decoder(self.reals_enc, training = True)
 
-	# 		self.loss_AE()
-	# 		self.D_loss = self.G_loss = tf.constant(0)
-	# 		self.E_grads = enc_tape.gradient(self.AE_loss, self.Encoder.trainable_variables)
-	# 		self.D_grads = dec_tape.gradient(self.AE_loss, self.Decoder.trainable_variables)
-	# 		# print("AE Grads",self.E_grads, "=================================================")
-	# 		self.E_optimizer.apply_gradients(zip(self.E_grads, self.Encoder.trainable_variables))
-	# 		self.D_optimizer.apply_gradients(zip(self.D_grads, self.Decoder.trainable_variables))
 
-	def pretrain_step_AE(self,reals_all):
+	def pretrain_step_GAN(self,reals_all):
 
 		## Actually Pretrain GAN. - Will make a sperate flag nd control if it does infact work out
 		with tf.device(self.device):
@@ -571,10 +538,9 @@ class WAE_ELeGANt(GAN_WAE):
 		with tf.device(self.device):
 			self.alpha_c, self.alpha_s = eval('self.Fourier_Series_Comp(self.fakes_enc)') #alpha is targets => fakes
 			self.beta_c, self.beta_s = eval('self.Fourier_Series_Comp(self.reals_enc)')
-			# self.Coeffs = tf.multiply(self.n_vec, self.W)
 
 			# Vec of len Lx1 , wach entry is ||n||
-			# temp = tf.constant(-0.5/(self.W**2))*tf.subtract(self.alpha_s, self.beta_s) #1./200 gave 29th's good images
+
 			self.Gamma_s = tf.math.divide(tf.constant(1/(self.W**2))*tf.subtract(self.alpha_s, self.beta_s), self.n_norm)
 			self.Gamma_c = tf.math.divide(tf.constant(1/(self.W**2))*tf.subtract(self.alpha_c, self.beta_c), self.n_norm)
 			self.Tau_s = tf.math.divide(tf.constant(1/(2.*(self.W**2)))*tf.square(tf.subtract(self.alpha_s, self.beta_s)), self.n_norm)
@@ -582,14 +548,9 @@ class WAE_ELeGANt(GAN_WAE):
 			self.sum_Tau = 1.*tf.reduce_sum(tf.add(self.Tau_s,self.Tau_c))
 
 	def find_and_divide_lambda(self):
-		# print(self.lambda_x_terms_1, self.lambda_x_terms_2, self.sum_Tau, "====================")
 		self.lamb = tf.divide(tf.reduce_sum(self.lambda_x_terms_2) + tf.reduce_sum(self.lambda_x_terms_1),tf.cast(self.batch_size, dtype = 'float32')) + self.sum_Tau
-		# self.lamb = tf.reduce_sum(self.lambda_x_terms_2) + tf.reduce_sum(self.lambda_x_terms_1) + self.sum_Tau
 		self.lamb = tf.cast(2*self.L, dtype = 'float32')*self.lamb # Dont put the sqrt????
 		self.lamb = tf.sqrt(self.lamb)
-		# self.lambda_vec.append(self.lamb.numpy())
-		# print(self.lamb,"=======================")
-		# print(self.real_output, self.fake_output,"====================")
 		self.real_output = tf.divide(self.real_output, self.lamb)
 		self.fake_output = tf.divide(self.fake_output, self.lamb)
 
@@ -604,10 +565,6 @@ class WAE_ELeGANt(GAN_WAE):
 
 	def loss_AE(self):
 		mse = tf.keras.losses.MeanSquaredError()
-		# loss_AE_reals = tf.reduce_mean(tf.abs(self.reals - self.reals_dec))
-		# loss_AE_reals += mse(self.reals, self.reals_dec)
-		# if self.data == 'mnist':
-			# loss_AE_reals += mse(self.reals, self.reals_dec)
 		if self.data in ['celeba','lsun']:
 			loss_AE_reals = tf.reduce_mean(tf.abs(self.reals - self.reals_dec))
 		elif self.data in ['mnist', 'svhn', 'cifar10']:
@@ -625,10 +582,6 @@ class WAE_Base(GAN_WAE):
 	def __init__(self,FLAGS_dict):
 
 		self.lambda_GP = 1.
-
-		# self.latent_dims = FLAGS_dict['latent_dims']
-		# self.noise_kind = FLAGS_dict['noise_kind']
-		
 		GAN_WAE.__init__(self,FLAGS_dict)
 
 
@@ -652,13 +605,6 @@ class WAE_Base(GAN_WAE):
 			print(self.Decoder.summary())
 			print("\n\n DISCRIMINATOR MODEL: \n\n")
 			print(self.discriminator.summary())
-
-			# from flopco_keras import FlopCoKeras
-			# stats = FlopCoKeras(self.discriminator)
-
-			# print(f"FLOPs: {stats.total_flops}")
-			# print(f"MACs: {stats.total_macs}")
-			# print(f"Relative FLOPs: {stats.relative_flops}")
 
 			if self.res_flag == 1:
 				with open(self.run_loc+'/'+self.run_id+'_Models.txt','a') as fh:
@@ -717,7 +663,7 @@ class WAE_Base(GAN_WAE):
 				
 				with tf.device(self.device):
 					if epoch < self.AE_count:
-						self.pretrain_step_AE(image_batch)
+						self.pretrain_step_GAN(image_batch)
 					else:
 						self.train_step(image_batch)
 						self.eval_metrics()
@@ -772,24 +718,8 @@ class WAE_Base(GAN_WAE):
 		if (self.total_count.numpy() % 1000) == 0:
 			self.test()
 	
-	# def pretrain_step_AE(self,reals_all):
-	# 	with tf.device(self.device):
-	# 		self.reals = reals_all
 
-	# 	with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
-
-	# 		self.reals_enc = self.Encoder(self.reals, training = True)
-	# 		self.reals_dec = self.Decoder(self.reals_enc, training = True)
-
-	# 		self.loss_AE()
-	# 		self.D_loss = self.G_loss = tf.constant(0)
-	# 		self.E_grads = enc_tape.gradient(self.AE_loss, self.Encoder.trainable_variables)
-	# 		self.D_grads = dec_tape.gradient(self.AE_loss, self.Decoder.trainable_variables)
-	# 		# print("AE Grads",self.E_grads, "=================================================")
-	# 		self.E_optimizer.apply_gradients(zip(self.E_grads, self.Encoder.trainable_variables))
-	# 		self.D_optimizer.apply_gradients(zip(self.D_grads, self.Decoder.trainable_variables))
-
-	def pretrain_step_AE(self,reals_all):
+	def pretrain_step_GAN(self,reals_all):
 		with tf.device(self.device):
 			self.fakes_enc = target_noise = self.get_noise(self.batch_size)
 			self.reals = reals_all
@@ -825,64 +755,65 @@ class WAE_Base(GAN_WAE):
 	def test(self):
 
 		##### Random
-		# for i in range(10):
-		# 	path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	noise = self.get_noise(self.batch_size)
-		# 	images = self.Decoder(noise)
+		for i in range(10):
+			path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			noise = self.get_noise(self.batch_size)
+			images = self.Decoder(noise)
 
-		# 	sharpness = self.find_sharpness(images)
+			sharpness = self.find_sharpness(images)
 
-		# 	try:
-		# 		sharpness_vec.append(sharpness)
-		# 	except:
-		# 		shaprpness_vec = [sharpness]
+			try:
+				sharpness_vec.append(sharpness)
+			except:
+				shaprpness_vec = [sharpness]
 
-		# 	images = (images + 1.0)/2.0
+			images = (images + 1.0)/2.0
 
-		# 	size_figure_grid = 10
-		# 	images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 	fig1 = plt.figure(figsize=(7,7))
-		# 	ax1 = fig1.add_subplot(111)
-		# 	ax1.cla()
-		# 	ax1.axis("off")
-		# 	if images_on_grid.shape[2] == 3:
-		# 		ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 	else:
-		# 		ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 	# images = tf.reshape(images, [images.shape[0],self.output_size,self.output_size,1])
-		# 	# fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(10, 10))
-		# 	# for i in range(size_figure_grid):
-		# 	# 	for j in range(size_figure_grid):
-		# 	# 		ax[i, j].get_xaxis().set_visible(False)
-		# 	# 		ax[i, j].get_yaxis().set_visible(False)
+			# images = tf.reshape(images, [images.shape[0],self.output_size,self.output_size,1])
+			# fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(10, 10))
+			# for i in range(size_figure_grid):
+			# 	for j in range(size_figure_grid):
+			# 		ax[i, j].get_xaxis().set_visible(False)
+			# 		ax[i, j].get_yaxis().set_visible(False)
 
-		# 	# for k in range(size_figure_grid*size_figure_grid):
-		# 	# 	i = k // size_figure_grid
-		# 	# 	j = k % size_figure_grid
-		# 	# 	ax[i, j].cla()
-		# 	# 	if images.shape[3] == 1:
-		# 	# 		im = images[k,:,:,0]
-		# 	# 		ax[i, j].imshow(im, cmap='gray')
-		# 	# 	else:
-		# 	# 		im = images[k,:,:,:]
-		# 	# 		ax[i, j].imshow(im)
+			# for k in range(size_figure_grid*size_figure_grid):
+			# 	i = k // size_figure_grid
+			# 	j = k % size_figure_grid
+			# 	ax[i, j].cla()
+			# 	if images.shape[3] == 1:
+			# 		im = images[k,:,:,0]
+			# 		ax[i, j].imshow(im, cmap='gray')
+			# 	else:
+			# 		im = images[k,:,:,:]
+			# 		ax[i, j].imshow(im)
 
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	plt.title(label)
-		# 	plt.tight_layout()
-		# 	# fig.text(0.5, 0.04, label, ha='center')
-		# 	plt.savefig(path)
-		# 	plt.close()
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			# fig.text(0.5, 0.04, label, ha='center')
+			plt.savefig(path)
+			plt.close()
 		
-		# overall_sharpness = np.mean(np.array(shaprpness_vec))
-		# if self.mode == 'test':
-		# 	print("Random Sharpness - " + str(overall_sharpness))
-		# 	if self.res_flag:
-		# 		self.res_file.write("Random Sharpness - "+str(overall_sharpness))
-		# else:
-		# 	if self.res_flag:
-		# 		self.res_file.write("Random Sharpness - "+str(overall_sharpness))
+		# Random Samples - Sharpness
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Random Sharpness - " + str(overall_sharpness))
+			if self.res_flag:
+				self.res_file.write("Random Sharpness - "+str(overall_sharpness))
+		else:
+			if self.res_flag:
+				self.res_file.write("Random Sharpness - "+str(overall_sharpness))
 
 
 		i = 0
@@ -907,122 +838,121 @@ class WAE_Base(GAN_WAE):
 
 
 		##### Recon - Output
-		# for image_batch in self.recon_dataset:
-		# 	path = self.impath+'_TestingRecon_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	images = self.Decoder(self.Encoder(image_batch))
-		# 	images = (images + 1.0)/2.0
-		# 	size_figure_grid = 10
-		# 	images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 	fig1 = plt.figure(figsize=(7,7))
-		# 	ax1 = fig1.add_subplot(111)
-		# 	ax1.cla()
-		# 	ax1.axis("off")
-		# 	if images_on_grid.shape[2] == 3:
-		# 		ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 	else:
-		# 		ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+		for image_batch in self.recon_dataset:
+			path = self.impath+'_TestingRecon_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			images = self.Decoder(self.Encoder(image_batch))
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	plt.title(label)
-		# 	plt.tight_layout()
-		# 	# fig.text(0.5, 0.04, label, ha='center')
-		# 	plt.savefig(path)
-		# 	plt.close()
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			# fig.text(0.5, 0.04, label, ha='center')
+			plt.savefig(path)
+			plt.close()
 
 		##### Recon - ORG 
-		# 	path = self.impath+'_TestingReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	images = image_batch
-		# 	images = (images + 1.0)/2.0
-		# 	size_figure_grid = 10
-		# 	images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 	fig1 = plt.figure(figsize=(7,7))
-		# 	ax1 = fig1.add_subplot(111)
-		# 	ax1.cla()
-		# 	ax1.axis("off")
-		# 	if images_on_grid.shape[2] == 3:
-		# 		ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 	else:
-		# 		ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+			path = self.impath+'_TestingReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			images = image_batch
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	plt.title(label)
-		# 	plt.tight_layout()
-		# 	plt.savefig(path)
-		# 	plt.close()
-		# 	break
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			plt.savefig(path)
+			plt.close()
+			break
 
 		##### Interpolation
-		# num_interps = 10
-		# if self.mode == 'test':
-		# 	num_figs = int(400/(2*num_interps))
-		# else:
-		# 	num_figs = 9
-		# # there are 400 samples in the batch. to make 10x10 images, 
-		# for image_batch in self.interp_dataset:
-		# 	for j in range(num_figs):
-		# 		path = self.impath+'_TestingInterpolationV2_'+str(self.total_count.numpy())+'_TestCase_'+str(j)+'.png'
-		# 		current_batch = image_batch[2*num_interps*j:2*num_interps*(j+1)]
-		# 		image_latents = self.Encoder(current_batch)
-		# 		for i in range(num_interps):
-		# 			start = image_latents[i:1+i].numpy()
-		# 			end = image_latents[num_interps+i:num_interps+1+i].numpy()
-		# 			stack = np.vstack([start, end])
-		# 			# print(stack.shape)
-		# 			linfit = interp1d([1,num_interps+1], stack, axis=0)
-		# 			# try:
-		# 			# 	interp_latents=np.concatenate((interp_latents,linfit(list(range(1,num_interps+1)))),axis = 0)
-		# 			# except:
-		# 			# 	interp_latents = linfit(list(range(1,num_interps+1)))
-		# 			interp_latents = linfit(list(range(1,num_interps+1)))
-		# 			cur_interp_figs = self.Decoder(interp_latents)
+		num_interps = 10
+		if self.mode == 'test':
+			num_figs = int(400/(2*num_interps))
+		else:
+			num_figs = 9
+		# there are 400 samples in the batch. to make 10x10 images, 
+		for image_batch in self.interp_dataset:
+			for j in range(num_figs):
+				path = self.impath+'_TestingInterpolationV2_'+str(self.total_count.numpy())+'_TestCase_'+str(j)+'.png'
+				current_batch = image_batch[2*num_interps*j:2*num_interps*(j+1)]
+				image_latents = self.Encoder(current_batch)
+				for i in range(num_interps):
+					start = image_latents[i:1+i].numpy()
+					end = image_latents[num_interps+i:num_interps+1+i].numpy()
+					stack = np.vstack([start, end])
+					# print(stack.shape)
+					linfit = interp1d([1,num_interps+1], stack, axis=0)
+					# try:
+					# 	interp_latents=np.concatenate((interp_latents,linfit(list(range(1,num_interps+1)))),axis = 0)
+					# except:
+					# 	interp_latents = linfit(list(range(1,num_interps+1)))
+					interp_latents = linfit(list(range(1,num_interps+1)))
+					cur_interp_figs = self.Decoder(interp_latents)
 
-		# 			sharpness = self.find_sharpness(cur_interp_figs)
+					sharpness = self.find_sharpness(cur_interp_figs)
 
-		# 			try:
-		# 				sharpness_vec.append(sharpness)
-		# 			except:
-		# 				shaprpness_vec = [sharpness]
+					try:
+						sharpness_vec.append(sharpness)
+					except:
+						shaprpness_vec = [sharpness]
 
-		# 			cur_interp_figs_with_ref = np.concatenate((current_batch[i:1+i],cur_interp_figs.numpy(),current_batch[num_interps+i:num_interps+1+i]), axis = 0)
+					cur_interp_figs_with_ref = np.concatenate((current_batch[i:1+i],cur_interp_figs.numpy(),current_batch[num_interps+i:num_interps+1+i]), axis = 0)
 
-		# 			try:
-		# 				batch_interp_figs = np.concatenate((batch_interp_figs,cur_interp_figs_with_ref),axis = 0)
-		# 			except:
-		# 				batch_interp_figs = cur_interp_figs_with_ref
-		# 			# print(interp_latents.shape)
+					try:
+						batch_interp_figs = np.concatenate((batch_interp_figs,cur_interp_figs_with_ref),axis = 0)
+					except:
+						batch_interp_figs = cur_interp_figs_with_ref
+					# print(interp_latents.shape)
 
-		# 		# interpolation_figs = self.Decoder(interp_latents)
+				# interpolation_figs = self.Decoder(interp_latents)
 
-		# 		images = (batch_interp_figs + 1.0)/2.0
-		# 		# print(images.shape)
-		# 		size_figure_grid = num_interps
-		# 		images_on_grid = self.image_grid(input_tensor = images, grid_shape = (size_figure_grid,size_figure_grid+2),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 		fig1 = plt.figure(figsize=(num_interps,num_interps))
-		# 		ax1 = fig1.add_subplot(111)
-		# 		ax1.cla()
-		# 		ax1.axis("off")
-		# 		if images_on_grid.shape[2] == 3:
-		# 			ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 		else:
-		# 			ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+				images = (batch_interp_figs + 1.0)/2.0
+				# print(images.shape)
+				size_figure_grid = num_interps
+				images_on_grid = self.image_grid(input_tensor = images, grid_shape = (size_figure_grid,size_figure_grid+2),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+				fig1 = plt.figure(figsize=(num_interps,num_interps))
+				ax1 = fig1.add_subplot(111)
+				ax1.cla()
+				ax1.axis("off")
+				if images_on_grid.shape[2] == 3:
+					ax1.imshow(np.clip(images_on_grid,0.,1.))
+				else:
+					ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
 
-		# 		label = 'INTERPOLATED IMAGES AT ITERATION '+str(self.total_count.numpy())
-		# 		plt.title(label)
-		# 		plt.tight_layout()
-		# 		plt.savefig(path)
-		# 		plt.close()
-		# 		del batch_interp_figs
-			
-		# overall_sharpness = np.mean(np.array(shaprpness_vec))
-		# if self.mode == 'test':
-		# 	print("Interpolation Sharpness - " + str(overall_sharpness))
-		# 	if self.res_flag:
-		# 		self.res_file.write("Interpolation Sharpness - "+str(overall_sharpness))
-		# else:
-		# 	if self.res_flag:
-		# 		self.res_file.write("nterpolation Sharpness - "+str(overall_sharpness))
-
-
+				label = 'INTERPOLATED IMAGES AT ITERATION '+str(self.total_count.numpy())
+				plt.title(label)
+				plt.tight_layout()
+				plt.savefig(path)
+				plt.close()
+				del batch_interp_figs
+		
+		#Interpol Samples - Sharpness	
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Interpolation Sharpness - " + str(overall_sharpness))
+			if self.res_flag:
+				self.res_file.write("Interpolation Sharpness - "+str(overall_sharpness))
+		else:
+			if self.res_flag:
+				self.res_file.write("nterpolation Sharpness - "+str(overall_sharpness))
 
 
 
@@ -1084,7 +1014,6 @@ class WAE_Base(GAN_WAE):
 		logloss_D_real = tf.math.log(self.real_output) 
 
 		logloss_G_fake = tf.math.log(self.fake_output)
-		#used 0.01
 
 		self.D_loss = -tf.reduce_mean(logloss_D_fake + logloss_D_real)
 		self.G_loss = -tf.reduce_mean(logloss_G_fake)
@@ -1117,7 +1046,6 @@ class WAE_Base(GAN_WAE):
 		self.D_loss = (-loss_real + loss_fake + self.lambda_GP * self.gp )
 
 		self.G_loss = (loss_real - loss_fake)
-		#0th on 30th is 0.0001, 1st is 0.001, 2nd is 0.1, 3rd is 0.01
 
 
 	def gradient_penalty(self):
@@ -1246,9 +1174,6 @@ class WAE_Base(GAN_WAE):
 
 	def loss_AE(self):
 		mse = tf.keras.losses.MeanSquaredError()
-		# loss_AE_reals = tf.reduce_mean(tf.abs(self.reals - self.reals_dec))
-		# if self.data == 'mnist':
-		# 	loss_AE_reals += mse(self.reals, self.reals_dec)
 
 		if self.data in ['celeba','lsun']:
 			loss_AE_reals = tf.reduce_mean(tf.abs(self.reals - self.reals_dec))
@@ -1259,124 +1184,3 @@ class WAE_Base(GAN_WAE):
 
 		self.AE_loss =  loss_AE_reals 
 
-
-
-
-###########OLD TEST DUMPS - FS
-
-		# for image_batch in self.interp_dataset:
-		# 	for i in range(4):
-		# 		path = self.impath+'_TestingInterpReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 		images = image_batch
-		# 		images = (images + 1.0)/2.0
-		# 		size_figure_grid = 10
-		# 		images_on_grid = self.image_grid(input_tensor = images[i*(size_figure_grid*size_figure_grid):(i+1)*(size_figure_grid*size_figure_grid)], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 		fig1 = plt.figure(figsize=(10,10))
-		# 		ax1 = fig1.add_subplot(111)
-		# 		ax1.cla()
-		# 		ax1.axis("off")
-		# 		if images_on_grid.shape[2] == 3:
-		# 			ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 		else:
-		# 			ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
-
-		# 		label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 		plt.title(label)
-		# 		plt.tight_layout()
-		# 		plt.savefig(path)
-		# 		plt.close()
-		# 	break
-		############################################
-		# for image_batch in self.recon_dataset:
-		# 	for j in range(7):
-		# 		path = self.impath+'_TestingInterpolation_'+str(self.total_count.numpy())+'_TestCase_'+str(j)+'.png'
-		# 		image_latents = self.Encoder(image_batch[12*j:12*(j+1)])
-		# 		for i in range(6):
-		# 			start = image_latents[i:i+1].numpy()
-		# 			end = image_latents[6+i:7+i].numpy()
-		# 			stack = np.vstack([start, end])
-		# 			# print(stack.shape)
-		# 			linfit = interp1d([1,6], stack, axis=0)
-		# 			try:
-		# 				interp_latents=np.concatenate((interp_latents,linfit([1,2,3,4,5,6])),axis = 0)
-		# 			except:
-		# 				interp_latents = linfit([1,2,3,4,5,6])
-		# 			# print(interp_latents.shape)
-
-		# 		interpolation_figs = self.Decoder(interp_latents)
-
-		# 		images = (interpolation_figs + 1.0)/2.0
-		# 		# print(images.shape)
-		# 		size_figure_grid = 6
-		# 		images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 		fig1 = plt.figure(figsize=(7,7))
-		# 		ax1 = fig1.add_subplot(111)
-		# 		ax1.cla()
-		# 		ax1.axis("off")
-		# 		if images_on_grid.shape[2] == 3:
-		# 			ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 		else:
-		# 			ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
-
-		# 		label = 'INTERPOLATED IMAGES AT ITERATION '+str(self.total_count.numpy())
-		# 		plt.title(label)
-		# 		plt.tight_layout()
-		# 		plt.savefig(path)
-		# 		plt.close()
-		# 		del interp_latents
-
-
-		# for image_batch in self.interp_dataset:
-		# 	for i in range(4):
-		# 		path = self.impath+'_TestingInterpReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 		images = image_batch
-		# 		images = (images + 1.0)/2.0
-		# 		size_figure_grid = 10
-		# 		images_on_grid = self.image_grid(input_tensor = images[i*(size_figure_grid*size_figure_grid):(i+1)*(size_figure_grid*size_figure_grid)], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
-		# 		fig1 = plt.figure(figsize=(10,10))
-		# 		ax1 = fig1.add_subplot(111)
-		# 		ax1.cla()
-		# 		ax1.axis("off")
-		# 		if images_on_grid.shape[2] == 3:
-		# 			ax1.imshow(np.clip(images_on_grid,0.,1.))
-		# 		else:
-		# 			ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
-
-		# 		label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 		plt.title(label)
-		# 		plt.tight_layout()
-		# 		plt.savefig(path)
-		# 		plt.close()
-		# 	break
-		############################################
-
-		# for i in range(10):
-		# 	path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
-		# 	noise = self.get_noise(self.batch_size)
-		# 	images = self.Decoder(noise)
-		# 	size_figure_grid = 10
-		# 	# images = tf.reshape(images, [images.shape[0],self.output_size,self.output_size,1])
-		# 	fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(10, 10))
-		# 	for i in range(size_figure_grid):
-		# 		for j in range(size_figure_grid):
-		# 			ax[i, j].get_xaxis().set_visible(False)
-		# 			ax[i, j].get_yaxis().set_visible(False)
-
-		# 	for k in range(size_figure_grid*size_figure_grid):
-		# 		i = k // size_figure_grid
-		# 		j = k % size_figure_grid
-		# 		ax[i, j].cla()
-		# 		if images.shape[3] == 1:
-		# 			im = images[k,:,:,0]
-		# 			ax[i, j].imshow(im, cmap='gray')
-		# 		else:
-		# 			im = images[k,:,:,:]
-		# 			ax[i, j].imshow(im)
-
-		# 	label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
-		# 	fig.text(0.5, 0.04, label, ha='center')
-		# 	plt.savefig(path)
-		# 	plt.close()
-
-
-######## OLD TEST DUMPS _ WAE

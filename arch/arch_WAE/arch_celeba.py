@@ -9,20 +9,6 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-'''
-REPLACE GENERATOR WITH COMMENTED OUT AUTOENCODER LATENT SPACE GENERATOR!!!!!,,,, FIX TRAIN_STEP ACCORDINGLY
-'''
-
-### MINIBATHC DISCRIMINATOR!?!?
-"""def minibatch(input, num_kernels=5, kernel_dim=3):
-x = linear(input, num_kernels * kernel_dim, scope='minibatch', stddev=0.02)
-activation = tf.reshape(x, (-1, num_kernels, kernel_dim))
-diffs = tf.expand_dims(activation, 3) - \
-tf.expand_dims(tf.transpose(activation, [1, 2, 0]), 0)
-abs_diffs = tf.reduce_sum(tf.abs(diffs), 2)
-minibatch_features = tf.reduce_sum(tf.exp(-abs_diffs), 2)
-return tf.concat([input, minibatch_features], 1)"""
-
 
 class ARCH_celeba():
 
@@ -69,30 +55,12 @@ class ARCH_celeba():
 		enc4 = tf.keras.layers.LeakyReLU()(enc4)
 		# enc4 = tf.keras.layers.Activation( activation = 'tanh')(enc4)
 
-		# enc5 = tf.keras.layers.Conv2D(512, 4, strides=1, padding='same',kernel_initializer=init_fn, use_bias=True)(enc4) #2x2x128
-		# enc5 = tf.keras.layers.BatchNormalization()(enc5)
-		# # enc5 = tf.keras.layers.Dropout(0.5)(enc5)
-		# enc5 = tf.keras.layers.LeakyReLU()(enc5)
-		# enc5 = tf.keras.layers.Activation( activation = 'tanh')(enc5)
-
-
-		# enc6 = tf.keras.layers.Conv2D(512, 4, strides=1, padding='same',kernel_initializer=init_fn, use_bias=True)(enc5) #1x1xlatent
-		# enc6 = tf.keras.layers.BatchNormalization()(enc6)
-		# enc6 = tf.keras.layers.Activation( activation = 'tanh')(enc6)
-
 
 		dense = tf.keras.layers.Flatten()(enc4)
 
 		dense = tf.keras.layers.Dense(self.latent_dims, kernel_initializer = init_fn, use_bias = True, bias_initializer = bias_init_fn)(dense)
 		enc = tf.keras.layers.Dense(self.latent_dims, kernel_initializer = init_fn, use_bias = True, bias_initializer = bias_init_fn)(dense)
-		# enc =  tf.keras.layers.Activation( activation = 'sigmoid')(enc)
-		# enc =  tf.keras.layers.Activation( activation = 'tanh')(enc)
-		# enc = tf.math.scalar_mul(10., enc)
-		# enc = tf.keras.layers.ReLU(max_value = 6., threshold=-6.)(enc)
-		# enc = tf.keras.layers.ReLU(max_value = 2.)(enc)
-		# if self.loss != 'base':
 		enc  = tf.keras.layers.Lambda(ama_relu)(enc)
-		# enc =  tf.keras.layers.Activation( activation = 'sigmoid')(enc)
 
 
 		encoded = tf.keras.Input(shape=(self.latent_dims,))
@@ -119,19 +87,6 @@ class ARCH_celeba():
 		denc1 = tf.keras.layers.LeakyReLU()(denc3)
 		# denc1 = tf.keras.layers.Activation( activation = 'tanh')(denc3)
 
-
-		# denc2 = tf.keras.layers.Conv2DTranspose(128, 4, strides=1,padding='same',kernel_initializer=init_fn,use_bias=True)(denc3) #16x16x128
-		# denc2 = tf.keras.layers.BatchNormalization()(denc2)
-		# # denc2 = tf.keras.layers.Dropout(0.5)(denc2)
-		# denc2 = tf.keras.layers.LeakyReLU()(denc2)
-		# denc2 = tf.keras.layers.Activation( activation = 'tanh')(denc2)
-
-
-		# denc1 = tf.keras.layers.Conv2DTranspose(64, 4, strides=1,padding='same',kernel_initializer=init_fn,use_bias=True)(denc2) #32x32x64
-		# denc1 = tf.keras.layers.BatchNormalization()(denc1)
-		# # denc1 = tf.keras.layers.Dropout(0.5)(denc1)
-		# denc1 = tf.keras.layers.LeakyReLU()(denc1)
-		# denc1 = tf.keras.layers.Activation( activation = 'tanh')(denc1)
 
 		out = tf.keras.layers.Conv2DTranspose(3, 4,strides=1,padding='same', kernel_initializer=init_fn, use_bias = True, bias_initializer = bias_init_fn)(denc1) #64x64x3
 		out =  tf.keras.layers.Activation( activation = 'tanh')(out)
@@ -168,8 +123,6 @@ class ARCH_celeba():
 
 	def show_result_celeba(self, images=None, num_epoch=0, show = False, save = False, path = 'result.png'):
 
-		# if num_epoch%2 == 0 and num_epoch>self.AE_count:
-		# print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False) ))
 		if self.res_flag:# and num_epoch>self.AE_count:
 			self.res_file.write("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False), np.mean(self.fakes_enc, axis = 0), np.cov(self.fakes_enc,rowvar = False) ))
 		size_figure_grid = 5
@@ -213,7 +166,7 @@ class ARCH_celeba():
 
 
 	def CelebA_Classifier(self):
-		self.FID_model = tf.keras.applications.inception_v3.InceptionV3(include_top=False, pooling='avg', weights='imagenet', input_tensor=None, input_shape=(1024,1024,3), classes=1000)
+		self.FID_model = tf.keras.applications.inception_v3.InceptionV3(include_top=False, pooling='avg', weights='imagenet', input_tensor=None, input_shape=(299,299,3), classes=1000)
 
 	def FID_celeba(self):
 
@@ -228,7 +181,7 @@ class ARCH_celeba():
 				if self.FID_kind == 'latent':
 					image = tf.image.resize(image,[self.output_size,self.output_size])
 				else:
-					image = tf.image.resize(image,[1024,1024])
+					image = tf.image.resize(image,[299,299])
 				# This will convert to float values in [0, 1]
 				image = tf.divide(image,255.0)
 				image = tf.scalar_mul(2.0,image)
@@ -272,10 +225,7 @@ class ARCH_celeba():
 				else:
 					# print(self.fid_train_images.shape)
 					preds = self.Decoder(self.get_noise(tf.constant(100)), training=False)
-					# preds = preds[:,:,:].numpy()		
-					preds = tf.image.resize(preds, [1024,1024])
-					# preds = tf.scalar_mul(2.,preds)
-					# preds = tf.subtract(preds,1.0)
+					preds = tf.image.resize(preds, [299,299])
 					preds = preds.numpy()
 
 					act1 = self.FID_model.predict(image_batch)
