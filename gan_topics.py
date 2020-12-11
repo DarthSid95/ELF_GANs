@@ -258,6 +258,7 @@ class GAN_WAE(GAN_ARCH, GAN_DATA_WAE):
 		if self.noise_kind == 'gN':
 			noise = self.gN.sample(sample_shape=(int(batch_size.numpy()),self.latent_dims))
 
+
 		# tf.random.normal([100, self.latent_dims], mean = self.locs.numpy()[i], stddev = 1.)
 		if self.noise_kind == 'gaussian':
 			noise = tf.random.normal([batch_size, self.latent_dims], mean = 0.0, stddev = 1.0)
@@ -281,3 +282,172 @@ class GAN_WAE(GAN_ARCH, GAN_DATA_WAE):
 			noise = tfp.distributions.TruncatedNormal(loc=0.5, scale=0.2, low=0., high=1.).sample([batch_size, self.latent_dims])
 
 		return noise
+
+	def test(self):
+		###### Random Saples
+		for i in range(10):
+			path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			noise = self.get_noise(self.batch_size)
+			images = self.Decoder(noise)
+			
+
+			sharpness = self.find_sharpness(images)
+			try:
+				sharpness_vec.append(sharpness)
+			except:
+				shaprpness_vec = [sharpness]
+
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			# fig.text(0.5, 0.04, label, ha='center')
+			plt.savefig(path)
+			plt.close()
+
+		###### Random Samples - Sharpness
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Random Sharpness - " + str(overall_sharpness))
+			if self.res_flag:
+				self.res_file.write("Random Sharpness - "+str(overall_sharpness))
+		else:
+			if self.res_flag:
+				self.res_file.write("Random Sharpness - "+str(overall_sharpness))
+
+		i = 0
+		for image_batch in self.train_dataset:
+			i+=1
+			sharpness = self.find_sharpness(image_batch)
+			try:
+				sharpness_vec.append(sharpness)
+			except:
+				shaprpness_vec = [sharpness]
+			if i==100:
+				break
+
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Dataset Sharpness 10k samples - " + str(overall_sharpness))
+		if self.res_flag:
+			self.res_file.write("Dataset Sharpness 10k samples - "+str(overall_sharpness))
+
+
+		# ####### Recon - Output
+		for image_batch in self.recon_dataset:				
+			path = self.impath+'_TestingRecon_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			images = self.Decoder(self.Encoder(image_batch))
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			plt.savefig(path)
+			plt.close()
+
+		# ###### Recon - org
+			path = self.impath+'_TestingReconOrg_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
+			images = image_batch
+			images = (images + 1.0)/2.0
+			size_figure_grid = 10
+			images_on_grid = self.image_grid(input_tensor = images[0:size_figure_grid*size_figure_grid], grid_shape = (size_figure_grid,size_figure_grid),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+			fig1 = plt.figure(figsize=(7,7))
+			ax1 = fig1.add_subplot(111)
+			ax1.cla()
+			ax1.axis("off")
+			if images_on_grid.shape[2] == 3:
+				ax1.imshow(np.clip(images_on_grid,0.,1.))
+			else:
+				ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+
+			label = 'TEST SAMPLES AT ITERATION '+str(self.total_count.numpy())
+			plt.title(label)
+			plt.tight_layout()
+			plt.savefig(path)
+			plt.close()
+			break
+
+		####### Interpolation
+		num_interps = 10
+		if self.mode == 'test':
+			num_figs = int(400/(2*num_interps))
+		else:
+			num_figs = 9
+		# there are 400 samples in the batch. to make 10x10 images, 
+		for image_batch in self.interp_dataset:
+			for j in range(num_figs):
+				path = self.impath+'_TestingInterpolationV2_'+str(self.total_count.numpy())+'_TestCase_'+str(j)+'.png'
+				current_batch = image_batch[2*num_interps*j:2*num_interps*(j+1)]
+				image_latents = self.Encoder(current_batch)
+				for i in range(num_interps):
+					start = image_latents[i:1+i].numpy()
+					end = image_latents[num_interps+i:num_interps+1+i].numpy()
+					stack = np.vstack([start, end])
+
+					linfit = interp1d([1,num_interps+1], stack, axis=0)
+					interp_latents = linfit(list(range(1,num_interps+1)))
+					cur_interp_figs = self.Decoder(interp_latents)
+
+					sharpness = self.find_sharpness(cur_interp_figs)
+
+					try:
+						sharpness_vec.append(sharpness)
+					except:
+						shaprpness_vec = [sharpness]
+					cur_interp_figs_with_ref = np.concatenate((current_batch[i:1+i],cur_interp_figs.numpy(),current_batch[num_interps+i:num_interps+1+i]), axis = 0)
+					# print(cur_interp_figs_with_ref.shape)
+					try:
+						batch_interp_figs = np.concatenate((batch_interp_figs,cur_interp_figs_with_ref),axis = 0)
+					except:
+						batch_interp_figs = cur_interp_figs_with_ref
+
+				images = (batch_interp_figs + 1.0)/2.0
+				# print(images.shape)
+				size_figure_grid = num_interps
+				images_on_grid = self.image_grid(input_tensor = images, grid_shape = (size_figure_grid,size_figure_grid+2),image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+				fig1 = plt.figure(figsize=(num_interps,num_interps+2))
+				ax1 = fig1.add_subplot(111)
+				ax1.cla()
+				ax1.axis("off")
+				if images_on_grid.shape[2] == 3:
+					ax1.imshow(np.clip(images_on_grid,0.,1.))
+				else:
+					ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+
+				label = 'INTERPOLATED IMAGES AT ITERATION '+str(self.total_count.numpy())
+				plt.title(label)
+				plt.tight_layout()
+				plt.savefig(path)
+				plt.close()
+				del batch_interp_figs
+
+		###### Interpol samples - Sharpness
+		overall_sharpness = np.mean(np.array(shaprpness_vec))
+		if self.mode == 'test':
+			print("Interpolation Sharpness - " + str(overall_sharpness))
+		if self.res_flag:
+			self.res_file.write("Interpolation Sharpness - "+str(overall_sharpness))
+
+
+

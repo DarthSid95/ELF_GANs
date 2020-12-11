@@ -383,9 +383,6 @@ class WGAN_ELeGANt(GAN_ELeGANt):
 		self.postfix = {0: f'{0:3.0f}', 1: f'{0:2.4e}', 2: f'{0:2.4e}'}
 		self.bar_format = '{n_fmt}/{total_fmt} |{bar}| {rate_fmt}  Batch: {postfix[0]} ETA: {remaining}  Elapsed Time: {elapsed}  D_Loss: {postfix[1]}  G_Loss: {postfix[2]}'
 
-
-
-
 		self.M = self.terms #FLAGS_dict['terms'] #Number of terms in FS
 		# self.T = 2*np.pi*sigmul*self.sigma
 		# self.T = 1

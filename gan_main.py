@@ -92,21 +92,13 @@ flags.DEFINE_string('latent_kind', 'AE', """AE/DCT/W/AE2/AE3/Cycle - need to mak
 flags.DEFINE_string('distribution', 'generic', """generic/gaussian""")
 flags.DEFINE_integer('latent_dims', 10, """Dimension of latent representation""") #20 on GMM 8 worked #Matters only if not g  ;AE3 takes lxl 14 or 7; DCt lxl
 flags.DEFINE_integer('L', 25000, """Number of terms in summation""")
-flags.DEFINE_integer('AE_steps', 20000, """Dimension of latent representation""") #1000 for GMM8
-flags.DEFINE_integer('AE_count', 5, """Num of AE pre-training Epochs""")
-flags.DEFINE_integer('train_D', 0, """Dimension of latent representation""")
+# flags.DEFINE_integer('AE_steps', 20000, """Dimension of latent representation""") #1000 for GMM8
+flags.DEFINE_integer('GAN_pretrain_epochs', 5, """Num of AE pre-training Epochs""")
+flags.DEFINE_integer('train_D', 0, """Set 1 to backprop and update Disc FS weights with backprop""")
 flags.DEFINE_string('FID_kind', 'none', """if FID is latent, calculates on WAE latent space""")
 
 flags.DEFINE_float('lr_AE_Enc', 0.01, """learning rate""")
 flags.DEFINE_float('lr_AE_Dec', 0.01, """learning rate""")
-flags.DEFINE_float('lr_GenEnc', 0.0001, """learning rate""") #0.1 here works on base g
-flags.DEFINE_float('lr_GenDec', 0.01, """learning rate""")
-flags.DEFINE_float('lr_Disc', 0.0, """learning rate""")
-flags.DEFINE_float('lr2_AE_Enc', 0.0000001, """learning rate""")
-flags.DEFINE_float('lr2_AE_Dec', 0.0000001, """learning rate""")
-flags.DEFINE_float('lr2_GenEnc', 0.000001, """learning rate""") #0.001 is good? 0.00001 too high for g2
-flags.DEFINE_float('lr2_GenDec', 0, """learning rate""")
-flags.DEFINE_float('lr2_Disc', 0.0, """learning rate""")
 
 
 
