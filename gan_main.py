@@ -51,44 +51,20 @@ flags.DEFINE_integer('num_parallel_calls', 5, """Number of parallel calls for da
 flags.DEFINE_string('run_id', 'default', """ID of the run, used in saving.""")
 flags.DEFINE_string('log_folder', 'default', """ID of the run, used in saving.""")
 flags.DEFINE_string('mode', 'train', """Operation mode: train, test, fid """)
-flags.DEFINE_string('topic', 'ELeGANt', """ELeGANt or RumiGAN""")
+flags.DEFINE_string('topic', 'ELeGANt', """Base or ELeGANt""")
 flags.DEFINE_string('data', 'mnist', """Type of Data to run for""")
-flags.DEFINE_string('gan', 'sgan', """Type of GAN for""")
+flags.DEFINE_string('gan', 'WAE', """WGAN or WAE""")
 flags.DEFINE_string('loss', 'base', """Type of Loss function to use""")
 flags.DEFINE_string('GPU', '0,1', """GPU's made visible '0', '1', or '0,1' """)
 flags.DEFINE_string('device', '0', """Which GPU device to run on: 0,1 or -1(CPU)""")
 flags.DEFINE_string('noise_kind', 'gaussian', """Type of Noise for WAE latent prior""")
-flags.DEFINE_string('noise_data', 'mnist', """Type of Data to feed as noise""")
-
-
-'''Flags just for RumiGAN'''
-flags.DEFINE_integer('number', 3, """ Class selector in Multi-class data""")
-flags.DEFINE_integer('num_few', 200, """ 200 for MNIST, 1k for C10 and 10k for CelebA""")
-flags.DEFINE_integer('GaussN', 3, """ N for Gaussian""")
-flags.DEFINE_string('testcase', 'female', """Test cases for RumiGAN""")
-flags.DEFINE_string('label_style', 'base', """base vs. embed for how labels are fed to the net""")
-flags.DEFINE_float('label_a', -0.5, """Class label - a """)
-flags.DEFINE_float('label_bp', 2.0, """Class label - bp for +ve data """)
-flags.DEFINE_float('label_bn', -2.0, """Class label - bn for -ve data """)
-flags.DEFINE_float('label_c', 2.0, """Class label - c for generator """)
-flags.DEFINE_float('alphap', 0.9, """alpha weight for +ve class """)
-flags.DEFINE_float('alphan', 0.1, """alpha weight for -ve class""")
-
-'''
-Defined Testcases:
-1. even - learn only the even numbers 
-2. odd - learn only the odd mnist numbers
-3. male - learn males in CelebA
-4. female - learn females in CelebA
-5. single - learn a single digit in MNIST - uses number flag to deice number
-'''
 
 '''Flags just for WGAN-FS forms'''
-flags.DEFINE_integer('terms', 15, """N for 0-M for FS.""") #Matters only if g
-flags.DEFINE_float('sigma',10, """approximation sigma of data distribution""") 
-flags.DEFINE_integer('lambda_d', 20000, """Period as a multiple of sigmul*sigma""")
-flags.DEFINE_integer('sigmul', 1, """Period as a multiple of sigmul*sigma""") #10e5 is mnist, 10e3 if g ### NEW 100 works for MNIST, 10^5 is celeba ### Set to 1. make 100 for save for paper in 1D
-flags.DEFINE_string('latent_kind', 'AE', """AE/DCT/W/AE2/AE3/Cycle - need to make W""")
+flags.DEFINE_integer('terms', 50, """N for 0-M for FS.""") #Matters only if g
+flags.DEFINE_float('sigma',75, """approximation sigma of data distribution""") 
+flags.DEFINE_integer('lambda_d', 20000, """Period as a multiple of sigmul*sigma""") ##NeedToKill
+flags.DEFINE_integer('sigmul', 1, """Period as a multiple of sigmul*sigma""") ##NeedToKill
+flags.DEFINE_string('latent_kind', 'AE', """AE/DCT/W/AE2/AE3/Cycle - need to make W""") ##NeedToKill
 flags.DEFINE_string('distribution', 'generic', """generic/gaussian""")
 flags.DEFINE_integer('latent_dims', 10, """Dimension of latent representation""") #20 on GMM 8 worked #Matters only if not g  ;AE3 takes lxl 14 or 7; DCt lxl
 flags.DEFINE_integer('L', 25000, """Number of terms in summation""")
@@ -170,8 +146,8 @@ if __name__ == '__main__':
 			gan.train()
 			gan.test()
 
-		if gan.mode == 'save_model':
-			gan.model_saver()
+		if gan.mode == 'h5_from_checkpoint':
+			gan.h5_from_checkpoint()
 
 		if gan.mode == 'test':
 			gan.test()

@@ -11,7 +11,7 @@ from absl import flags
 import json
 
 from gan_data import *
-from gan_arch import *
+from gan_src import *
 
 import tensorflow_probability as tfp
 tfd = tfp.distributions
@@ -27,12 +27,12 @@ GAN_topic is the Overarching class file, where corresponding parents are instant
 '''***********************************************************************************
 ********** GAN Baseline setup ********************************************************
 ***********************************************************************************'''
-class GAN_Base(GAN_ARCH, GAN_DATA_Base):
+class GAN_Base(GAN_SRC, GAN_DATA_Base):
 
 	def __init__(self,FLAGS_dict):
-		''' Set up the GAN_ARCH class - defines all GAN architectures'''
+		''' Set up the GAN_SRC class - defines all GAN architectures'''
 
-		GAN_ARCH.__init__(self,FLAGS_dict)
+		GAN_SRC.__init__(self,FLAGS_dict)
 
 		''' Set up the GAN_DATA class'''
 		GAN_DATA_Base.__init__(self)
@@ -73,12 +73,12 @@ class GAN_Base(GAN_ARCH, GAN_DATA_Base):
 '''***********************************************************************************
 ********** GAN ELEGANT setup *********************************************************
 ***********************************************************************************'''
-class GAN_ELeGANt(GAN_ARCH, GAN_DATA_Base):
+class GAN_ELeGANt(GAN_SRC, GAN_DATA_Base):
 
 	def __init__(self,FLAGS_dict):
-		''' Set up the GAN_ARCH class - defines all GAN architectures'''
+		''' Set up the GAN_SRC class - defines all GAN architectures'''
 
-		GAN_ARCH.__init__(self,FLAGS_dict)
+		GAN_SRC.__init__(self,FLAGS_dict)
 
 		''' Set up the GAN_DATA class'''
 		GAN_DATA_Base.__init__(self)
@@ -126,12 +126,12 @@ class GAN_ELeGANt(GAN_ARCH, GAN_DATA_Base):
 '''***********************************************************************************
 ********** GAN AAE setup *************************************************************
 ***********************************************************************************'''
-class GAN_WAE(GAN_ARCH, GAN_DATA_WAE):
+class GAN_WAE(GAN_SRC, GAN_DATA_WAE):
 
 	def __init__(self,FLAGS_dict):
-		''' Set up the GAN_ARCH class - defines all GAN architectures'''
+		''' Set up the GAN_SRC class - defines all GAN architectures'''
 
-		GAN_ARCH.__init__(self,FLAGS_dict)
+		GAN_SRC.__init__(self,FLAGS_dict)
 
 		''' Set up the GAN_DATA class'''
 		GAN_DATA_WAE.__init__(self)
