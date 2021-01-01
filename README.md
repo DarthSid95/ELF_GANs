@@ -1,64 +1,11 @@
-Teaching A GAN What Not to Learn
+Euler Lagrange Analysis of Generative Adversarial Networks
 ====================
 
 ## Introduction
 
-This is the Code submission accompanying the NeurIPS 2020 paper, titled "[Teaching a GAN What Not to Learn](https://arxiv.org/pdf/2010.15639)."
+This is the Code submission accompanying the JMLR Submission "Euler Lagrange Analysis of GANs"
 
-This code contained the implementations of baseline SGAN, LSGAN, ACGAN, TACGAN, and CGAN-PD employed in the paper to generate the desired results. All code in written in TensorFlow2.x.  Any queries can be directed towards sidartha@iisc.ac.in with [GitHub-RumiGANs] in the subject. In its current state, the code can be used to train new models, while pre-trained models of will be made available shortly.
-
-![RumiGANs](Images/RumiGANs.png?raw=true)
-
-Rumi-GANs split the training data that is input to the GAN discriminator (D) into *positives*, which are target images to model, and *negatives*, which are images from the same dataset, but represent a subset of the distribution to avoid. The generator (G) learns to model only the distribution of the positive samples. Any existing GAN flavor can be reformulated into the *Rumi* framework --- (i) Split the input data into the desirable positive class and the undesirable negative class; (ii) Reformulate the GAN loss to focus on the positive class disribution. The refomulation of all f-GANs and WGAN is presented in the paper.  
-
-The Arxiv version of the paper is available [here](https://arxiv.org/abs/2010.15639), while the NeurIPS 2020 pre-proceedings version of the paper is currently available [here](https://proceedings.neurips.cc/paper/2020/hash/29405e2a4c22866a205f557559c7fa4b-Abstract.html).
-## Dependencies and Environment
-
-Dependencies can be installed via anaconda. The ``RumiGAN_GPU.yml`` file list the dependencies to setup the GPU system based environment: 
-
-```
-GPU accelerated TensorFlow2.0 Environment:
-- pip=20.0.2
-- python=3.6.10
-- cudatoolkit=10.1.243
-- cudnn=7.6.5
-- pip:
-    - absl-py==0.9.0
-    - h5py==2.10.0
-    - ipython==7.15.0
-    - ipython-genutils==0.2.0
-    - matplotlib==3.1.3
-    - numpy==1.18.1
-    - scikit-learn==0.22.1
-    - scipy==1.4.1
-    - tensorflow-gpu==2.2.0
-    - tensorboard==2.2.0
-    - tensorflow-addons
-    - tensorflow-estimator==2.2.0
-    - tqdm==4.42.1
-```
-If a GPU is unavailable, the CPU only environment can be built  with ``RumiGAN_CPU.yml``. This setting is meant to run evaluation code. Training is not advisable.
-```
-CPU based TensorFlow2.0 Environment:
-- pip=20.0.2
-- python=3.6.10
-- pip:
-    - absl-py==0.9.0
-    - h5py==2.10.0
-    - ipython==7.15.0
-    - ipython-genutils==0.2.0
-    - matplotlib==3.1.3
-    - numpy==1.18.1
-    - scikit-learn==0.22.1
-    - scipy==1.4.1
-    - tensorboard==2.0.2
-    - tensorflow-addons==0.6.0
-    - tensorflow-datasets==3.0.1
-    - tensorflow-estimator==2.0.1
-    - tensorflow==2.0.0
-    - tensorflow-probability==0.8.0
-    - tqdm==4.42.1
-```
+This codebase consists of the TensorFlow2.0 implementation WGAN-FS and WAEFR, along with the baseline comparisons. Additionally, high-resolution counterparts of the figures presented in the paper are also included.  
 
 Codes were tested locally on the following system configurations:
 
@@ -78,8 +25,66 @@ Codes were tested locally on the following system configurations:
 - NVIDIA_drivers:	-
 ```
 
-To create the ``RumiGAN`` environment, run:   
-``conda env create -f 'RumiGAN_GPU.yml' `` or ``conda env create -f 'RumiGAN_CPU.yml' ``.
+## Fourier Series Implementation
+
+The main difference between existing WGAN variants and out WGAN-FS, is the inclusion of a Fourier series solver in place of the gradient descent based optimization of the discriminator network. To highlight this fact, the snippets of code associated with the Fourier Solver (FS) are described below:
+
+The Fourier series network, as described in Figure 6 of the main manuscript is implemented as follows. The first layer, consisting of static weights, is implemented as below:
+```
+inputs = tf.keras.Input(shape=(latent_dims,))
+
+w0_nt_x = tf.keras.layers.Dense(L, activation=None, use_bias = False)(inputs)
+w0_nt_x2 = tf.math.scalar_mul(2., w0_nt_x)
+
+cos_terms = tf.keras.layers.Activation( activation = tf.math.cos)(w0_nt_x)
+sin_terms = tf.keras.layers.Activation( activation = tf.math.sin)(w0_nt_x)
+cos2_terms  = tf.keras.layers.Activation( activation = tf.math.cos)(w0_nt_x2)
+
+discriminator_model_A = tf.keras.Model(inputs=inputs, outputs= [inputs, cos_terms, sin_terms, cos2_terms])
+```
+The weight layers ``w0_nt_x`` is the predetermined ``w_o M`` matrix. Subsequently, the Fourier coefficients of  ``p_g`` and ``p_d`` are evaluated by the sample estimates of the characteristic function:
+```
+_, a_real, a_imag, _ = discriminator_model_A(input_data, training = False)
+a_real = tf.expand_dims(tf.reduce_mean( ar, axis = 0), axis = 1)
+a_imag = tf.expand_dims(tf.reduce_mean( ai, axis = 0), axis = 1)
+```
+Next, the Fourier coefficients ``D(x)`` are evaluated based on the solution to the Poisson's PDE, and are given by:
+
+```
+Gamma_imag = tf.math.divide(tf.constant(1/(w_o**2))*tf.subtract(alpha_imag, beta_imag), n_norm)
+Gamma_real = tf.math.divide(tf.constant(1/(w_o**2))*tf.subtract(alpha_real, beta_real), n_norm)
+Tau_imag = tf.math.divide(tf.constant(1/(2*(w_o**2)))*tf.square(tf.subtract(alpha_imag, beta_imag)), n_norm)
+Tau_real = tf.math.divide(tf.constant(1/(2*(w_o**2)))*tf.square(tf.subtract(alpha_real, beta_real)), n_norm)
+Tau_sum = tf.reduce_sum(tf.add(Tau_imag,Tau_real))
+```
+Finally, with these terms, the second layer of the discriminator can be defined:
+```
+inputs = tf.keras.Input(shape=(self.latent_dims,))
+cos_terms = tf.keras.Input(shape=(self.L,))
+sin_terms = tf.keras.Input(shape=(self.L,))
+cos2_terms = tf.keras.Input(shape=(self.L,))
+
+cos_sum = tf.keras.layers.Dense(1, activation=None, use_bias = True)(cos_terms) # Gamma_real weights
+sin_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(sin_terms) # Gamma_imag weights
+
+cos2_c_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(cos2_terms) # Tau_real weights
+cos2_s_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(cos2_terms) # Tau_imag weights
+
+lambda_x_term = tf.keras.layers.Subtract()([cos2_s_sum, cos2_c_sum]) # (tau_imag  - tau_real) term
+
+if self.latent_dims == 1:
+	phi0_x = inputs # 1-D Homogeneous component 
+else:
+	phi0_x = tf.divide(tf.reduce_sum(inputs, axis=-1, keepdims=True), latent_dims) # n-D Homogeneous component 
+
+if homogeneous_component:
+	Out = tf.keras.layers.Add()([cos_sum, sin_sum, phi0_x])
+else:
+	Out = tf.keras.layers.Add()([cos_sum, sin_sum])
+
+discriminator_model_B = tf.keras.Model(inputs= [inputs, cos_terms, sin_terms, cos2_terms], outputs=[Out,lambda_x_term])
+
+```
 
 ## Training Data
 
@@ -107,22 +112,6 @@ bash bash_files/train/train_RumiGAN.sh
 ----------------------------------
 ----------------------------------
 
-### Reference
-
-If you found this code useful, please consider citing our work:
-
-```
-@misc{asokan2020teaching,
-      title={Teaching a GAN What Not to Learn}, 
-      author={Siddarth Asokan and Chandra Sekhar Seelamantula},
-      year={2020},
-      eprint={2010.15639},
-      archivePrefix={arXiv},
-      primaryClass={stat.ML}
-}
-```
-*The NeurIPS version of the paper is cirrently available in the pre-proceedings*
-
 ### License
 The license is committed to the repository in the project folder as `LICENSE.txt`.  
 Please see the `LICENSE.txt` file for full informations.
@@ -137,7 +126,3 @@ Please see the `LICENSE.txt` file for full informations.
 
 ----------------------------------
 ----------------------------------
-
-
-
-

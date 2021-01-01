@@ -127,58 +127,6 @@ class ARCH_cifar10():
 		return model
 
 
-
-	def show_result_cifar10(self, images=None, num_epoch=0, show = False, save = False, path = 'result.png'):
-		
-		from sklearn.covariance import EmpiricalCovariance
-
-		# if num_epoch%1 == 0 and num_epoch>self.AE_count:
-		# print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False) ))
-		if self.res_flag:# and num_epoch>self.AE_count:
-			self.res_file.write("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False), np.mean(self.fakes_enc, axis = 0), np.cov(self.fakes_enc,rowvar = False) ))
-		size_figure_grid = 5
-		# print(EmpiricalCovariance().fit(self.fakes_enc).covariance_)
-		# exit(0)
-		images = tf.reshape(images, [images.shape[0],self.output_size,self.output_size,3])
-		images_on_grid = self.image_grid(input_tensor = images, grid_shape = (self.num_to_print,self.num_to_print),image_shape=(self.output_size,self.output_size),num_channels=3)
-		fig = plt.figure(figsize=(7,7))
-		ax1 = fig.add_subplot(111)
-		ax1.cla()
-		ax1.axis("off")
-		ax1.imshow(np.clip(images_on_grid,0.,1.))
-
-
-		label = 'Epoch {0}'.format(num_epoch)
-		plt.title(label, fontsize=8)
-		# fig.text(0.5, 0.04, label, ha='center')
-		if save:
-			plt.tight_layout()
-			plt.savefig(path)
-		if show:
-			plt.show()
-		else:
-			plt.close()
-
-		reals_to_display = (self.reals[0:self.num_to_print*self.num_to_print] + 1.0)/2.0
-		images_on_grid = self.image_grid(input_tensor = reals_to_display, grid_shape = (self.num_to_print,self.num_to_print),image_shape=(self.output_size,self.output_size),num_channels=3)
-		fig1 = plt.figure(figsize=(7,7))
-		ax1 = fig1.add_subplot(111)
-		ax1.cla()
-		ax1.axis("off")
-		ax1.imshow(np.clip(images_on_grid,0.,1.))
-
-		label = 'Epoch {0}'.format(num_epoch)
-		plt.title(label, fontsize=8)
-		if save:
-			plt.tight_layout()
-			plt.savefig(path.split('.')[0]+'gt.png')
-
-		if show:
-			plt.show()
-		else:
-			plt.close()
-
-
 	def CIFAR10_Classifier(self):
 		self.FID_model = tf.keras.applications.inception_v3.InceptionV3(include_top=False, pooling='avg', weights='imagenet', input_tensor=None, input_shape=(299,299,3), classes=1000)
 

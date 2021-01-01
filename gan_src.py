@@ -220,6 +220,9 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 		noise = tf.random.normal([self.num_to_print*self.num_to_print, self.noise_dims], mean = self.noise_mean, stddev = self.noise_stddev)
 
 		path = self.impath + str(self.total_count.numpy())
+		path_reals = path.split('.')[0]+'gt.png'
+		label = 'Epoch {0}'.format(num_epoch)
+
 		#### AAE are Autoencoders, not generative models.
 		if self.gan == 'WAE':
 			predictions = self.Decoder(self.Encoder(self.reals[0:self.num_to_print*self.num_to_print], training = False), training = False)
@@ -228,7 +231,85 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 			if self.loss == 'FS':
 		if self.gan == 'WAE':
 			predictions = (predictions + 1.0)/2.0
-		eval(self.show_result_func)
+		# eval(self.show_result_func)
+
+		# save_image_batch
+		elif self.data in ['g1', 'g2', 'gmm8']:
+			eval(self.show_result_func)
+		else:
+			self.save_image_batch(images = predictions, label =label,  path = path)
+			if self.data == 'mnist' and self.latent_dims == 2:
+				self.print_mnist_latent(path = path)
+			else:
+				self.print_gaussian_stats()
+
+		if epoch <= 2:
+			reals_to_display = (self.reals[0:self.num_to_print*self.num_to_print] + 1.0)/2.0
+			self.save_reals_batch(images = reals_to_display, label = label, path = path_reals)
+
+
+	def save_image_batch(self, images = None, label = 'Default Image Label', path = 'result.png'):
+		images_on_grid = self.image_grid(input_tensor = images, grid_shape = (self.num_to_print,self.num_to_print), image_shape=(self.output_size,self.output_size),num_channels=images.shape[3])
+		fig1 = plt.figure(figsize=(14,14))
+		ax1 = fig1.add_subplot(111)
+		ax1.cla()
+		ax1.axis("off")
+		if images_on_grid.shape[2] == 3:
+			ax1.imshow(np.clip(images_on_grid,0.,1.))
+		else:
+			ax1.imshow(np.clip(images_on_grid[:,:,0],0.,1.), cmap='gray')
+		plt.title(label, fontsize=12)
+		plt.tight_layout()
+		plt.savefig(path)
+		plt.close()
+		return
+
+	def print_gaussian_stats(self):
+		## Uncomment if you need Image Latent space statitics printed
+		print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False)))
+
+		if self.res_flag:# and num_epoch>self.AE_count:
+			self.res_file.write("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False), np.mean(self.fakes_enc, axis = 0), np.cov(self.fakes_enc,rowvar = False) ))
+		return
+
+	def print_mnist_latent(self, path = path):
+
+		print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False) ))
+		if self.res_flag:
+			self.res_file.write("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False), np.mean(self.fakes_enc, axis = 0), np.cov(self.fakes_enc,rowvar = False) ))
+
+			if self.colab == 1:
+				from matplotlib.backends.backend_pdf import PdfPages
+				plt.rc('text', usetex=False)
+			else:
+				from matplotlib.backends.backend_pgf import FigureCanvasPgf
+				matplotlib.backend_bases.register_backend('pdf', FigureCanvasPgf)
+				from matplotlib.backends.backend_pgf import PdfPages
+				plt.rcParams.update({
+					"pgf.texsystem": "pdflatex",
+					"font.family": "serif",  # use serif/main font for text elements
+					"font.size":10,	
+					"font.serif": [], 
+					"text.usetex": True,     # use inline math for ticks
+					"pgf.rcfonts": False,    # don't setup fonts from rc parameters
+				})
+
+			with PdfPages(path+'_distribution.pdf') as pdf:
+
+				fig1 = plt.figure(figsize=(3.5, 3.5))
+				ax1 = fig1.add_subplot(111)
+				ax1.cla()
+				ax1.get_xaxis().set_visible(False)
+				ax1.get_yaxis().set_visible(False)
+				ax1.set_xlim([-3,3])
+				ax1.set_ylim([-3,3])
+				if num_epoch>self.AE_count:
+					ax1.scatter(self.fakes_enc[:,0], self.fakes_enc[:,1], c='r', linewidth = 1.5, label='Target Class Data', marker = '.')
+				ax1.scatter(self.reals_enc[:,0], self.reals_enc[:,1], c='b', linewidth = 1.5, label='Source Class Data', marker = '.')
+				ax1.legend(loc = 'upper right')
+				fig1.tight_layout()
+				pdf.savefig(fig1)
+				plt.close(fig1)
 
 	def image_grid(self,input_tensor, grid_shape, image_shape=(32, 32), num_channels=3):
 		"""Arrange a minibatch of images into a grid to form a single image.
@@ -286,4 +367,4 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 		else:
 			self.generator.save(self.checkpoint_dir + '/model_generator.h5', overwrite = True)
 			self.discriminator.save(self.checkpoint_dir + '/model_discriminator.h5', overwrite = True)
-
+		return

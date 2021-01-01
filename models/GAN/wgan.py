@@ -142,8 +142,6 @@ class WGAN_Base(GAN_Base):
 			self.generator.save(self.checkpoint_dir + '/model_generator.h5', overwrite = True)
 			self.discriminator.save(self.checkpoint_dir + '/model_discriminator.h5', overwrite = True)
 
-		# if self.KLD_flag:
-		# 	self.printKLD()
 
 	def print_batch_outputs(self,epoch):		
 		if self.total_count.numpy() <= 2:
@@ -209,17 +207,15 @@ class WGAN_Base(GAN_Base):
 	def loss_GP(self):
 
 		loss_fake = tf.reduce_mean(self.fake_output)
-
 		loss_real = tf.reduce_mean(self.real_output)  
 
 		self.gradient_penalty()
 
 		self.D_loss = 1 * (-loss_real + loss_fake) + self.lambda_GP * self.gp 
-
 		self.G_loss = 1 * (loss_real - loss_fake)
 
 	def gradient_penalty(self):
-		if self.data in ['g1', 'g2', 'gmm2', 'gmm8', 'u1']:
+		if self.data in ['g1', 'g2', 'gmm8']:
 			alpha = tf.random.uniform([self.batch_size, 1], 0., 1.)
 		else:
 			alpha = tf.random.uniform([self.batch_size, 1, 1, 1], 0., 1.)
@@ -229,7 +225,7 @@ class WGAN_Base(GAN_Base):
 			t.watch(inter)
 			pred = self.discriminator(inter, training = True)
 		grad = t.gradient(pred, [inter])[0]
-		if self.data in ['g1', 'g2', 'gmm2', 'gmm8', 'u1']:
+		if self.data in ['g1', 'g2', 'gmm8']:
 			slopes = tf.sqrt(tf.reduce_sum(tf.square(grad), axis=[1]))
 		else:
 			slopes = tf.sqrt(tf.reduce_sum(tf.square(grad), axis=[1, 2, 3]))
@@ -242,13 +238,11 @@ class WGAN_Base(GAN_Base):
 	def loss_LP(self):
 
 		loss_fake = tf.reduce_mean(self.fake_output)
-
 		loss_real = tf.reduce_mean(self.real_output)  
 
 		self.lipschitz_penalty()
 
 		self.D_loss = -loss_real + loss_fake + self.lambda_LP * self.lp 
-
 		self.G_loss = loss_real - loss_fake
 
 	def lipschitz_penalty(self):
@@ -285,13 +279,11 @@ class WGAN_Base(GAN_Base):
 	def loss_ALP(self):
 		
 		loss_fake = tf.reduce_mean(self.fake_output)
-
 		loss_real = tf.reduce_mean(self.real_output)  
 
 		self.adversarial_lipschitz_penalty()
 
 		self.D_loss = 1 * (-loss_real + loss_fake) + self.lambda_ALP * self.alp 
-
 		self.G_loss = 1 * (loss_real - loss_fake)
 
 
@@ -373,72 +365,8 @@ class WGAN_ELeGANt(GAN_ELeGANt):
 		self.lambda_GP = 10.
 		GAN_ELeGANt.__init__(self,FLAGS_dict)
 
-		if self.data in ['g1']:
-			self.latent_dims = 1
-		if self.data in ['g2', 'gmm8']:
-			self.latent_dims = 2
-
-		self.N = self.latent_dims
-
 		self.postfix = {0: f'{0:3.0f}', 1: f'{0:2.4e}', 2: f'{0:2.4e}'}
 		self.bar_format = '{n_fmt}/{total_fmt} |{bar}| {rate_fmt}  Batch: {postfix[0]} ETA: {remaining}  Elapsed Time: {elapsed}  D_Loss: {postfix[1]}  G_Loss: {postfix[2]}'
-
-		self.M = self.terms #FLAGS_dict['terms'] #Number of terms in FS
-		# self.T = 2*np.pi*sigmul*self.sigma
-		# self.T = 1
-		self.T = self.sigmul*self.sigma
-		self.W = 1*np.pi/self.T
-		self.freq = 1/self.T
-
-
-		''' If M is small, take all terms in FS expanse, else, a sample few of them '''
-		if self.N <= 3:
-			num_terms = list(np.arange(1,self.M+1))
-			self.L = ((self.M)**self.N)
-			print(num_terms) # nvec = Latent x Num_terms^latent
-			self.n_vec = tf.cast(np.array([p for p in cart_prod(num_terms,repeat = self.N)]).transpose(), dtype = 'float32') # self.N x self.L lengthmatrix, each column is a desired N_vec to use
-			# self.L = self.n_vec.numpy().shape[1]
-		else:
-			self.L = L#50000# + self.N + 1
-			with tf.device(self.device):
-				'''need to do poisson disc sampling'''  #temp is self.M^self.N here
-				if self.latent_kind != 'DCT' and self.latent_kind != 'AE3':
-					temp = self.latent_dims
-				elif self.latent_kind == 'DCT' or self.latent_kind == 'AE3':
-					temp = self.latent_dims*self.latent_dims
-
-				#Deterministically selected harmonics
-				# num_terms = list(np.arange(1,3))
-				vec1 = np.concatenate((np.ones([temp, 1]), np.concatenate(tuple([np.ones([temp,temp]) + k*np.eye(temp) for k in range(1,self.M+1)]),axis = 1)), axis = 1)
-				# vec1 = np.concatenate((np.ones([self.N, 1]), np.concatenate(tuple([np.ones([self.N,self.N]) + k*np.eye(self.N) for k in range(1,self.M+1)]),axis = 1)), axis = 1)#tf.cast(np.array([p for p in cart_prod(num_terms,repeat = self.N)]).transpose(),dtype='float32')
-				print("VEC1",vec1)
-				# vec2 = tf.cast(tf.random.uniform((temp,self.L),minval = 1, maxval = self.M, dtype = 'int32'),dtype='float32')
-				# dist = tfd.Beta(2,5)
-				# vec2 = tf.cast(tf.math.ceil((self.M-1)*dist.sample([temp,self.L])),dtype='float32')
-				# import sympy
-				vec2_basis = np.random.choice(self.M-1,self.L) + 1
-				# vec2_basis = np.arange(self.L)
-				vec2 = np.concatenate(tuple([np.expand_dims(np.roll(vec2_basis,k),axis=0) for k in range(temp)]), axis = 0)
-
-
-
-				print("VEC2",vec2)
-				# self.n_vec = tf.cast(np.concatenate((vec1,vec2.numpy()), axis = 1),dtype='float32')
-				self.n_vec = tf.cast(np.concatenate((vec1,vec2), axis = 1),dtype='float32')
-				# self.n_vec = tf.cast(vec2, dtype = 'float32')
-				self.L += self.M*temp + 1
-				print("NVEC",self.n_vec)
-				# print(self.n.shape,xxx)
-
-
-		with tf.device(self.device):
-			print(self.n_vec, self.W)
-			self.Coeffs = tf.multiply(self.n_vec, self.W)
-			print(self.Coeffs)
-			self.n_norm = tf.expand_dims(tf.square(tf.linalg.norm(tf.transpose(self.n_vec), axis = 1)), axis=1)
-			# print(xxx)
-
-
 
 	def main_func(self):
 
@@ -592,129 +520,6 @@ class WGAN_ELeGANt(GAN_ELeGANt):
 			# print(self.G_grads)
 			self.G_optimizer.apply_gradients(zip(self.G_grads, self.generator.trainable_variables))
 
-
-	def discriminator_model_FS_A(self):
-		inputs = tf.keras.Input(shape=(self.latent_dims,)) #used to be self.N
-
-		w0_nt_x = tf.keras.layers.Dense(self.L, activation=None, use_bias = False)(inputs)
-		w0_nt_x2 = tf.math.scalar_mul(2., w0_nt_x)
-
-		cos_terms = tf.keras.layers.Activation( activation = tf.math.cos)(w0_nt_x)
-		sin_terms = tf.keras.layers.Activation( activation = tf.math.sin)(w0_nt_x)
-		cos2_terms  = tf.keras.layers.Activation( activation = tf.math.cos)(w0_nt_x2)
-
-		model = tf.keras.Model(inputs=inputs, outputs= [inputs, cos_terms, sin_terms, cos2_terms])
-		return model
-
-	def discriminator_model_FS_B(self):
-		inputs = tf.keras.Input(shape=(self.latent_dims,))
-		cos_terms = tf.keras.Input(shape=(self.L,)) #used to be self.N
-		sin_terms = tf.keras.Input(shape=(self.L,))
-		cos2_terms = tf.keras.Input(shape=(self.L,))
-
-		cos_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(cos_terms)
-		sin_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(sin_terms)
-
-		cos2_c_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(cos2_terms) #Tau_c weights
-		cos2_s_sum = tf.keras.layers.Dense(1, activation=None, use_bias = False)(cos2_terms) #Tau_s weights
-
-		lambda_x_term = tf.keras.layers.Subtract()([cos2_s_sum, cos2_c_sum]) #(tau_s  - tau_r)
-
-		if self.latent_dims == 1:
-			phi0_x = inputs
-		else:
-			phi0_x = tf.divide(tf.reduce_sum(inputs,axis=-1,keepdims=True),self.latent_dims)
-
-		if self.homo_flag:
-			Out = tf.keras.layers.Add()([cos_sum, sin_sum, phi0_x])
-		else:
-			Out = tf.keras.layers.Add()([cos_sum, sin_sum])
-
-		model = tf.keras.Model(inputs= [inputs, cos_terms, sin_terms, cos2_terms], outputs=[Out,lambda_x_term])
-		return model
-
-
-
-	def Fourier_Series_Comp(self,f):
-
-		mu = tf.convert_to_tensor(np.expand_dims(np.mean(f,axis = 0),axis=1), dtype = 'float32')
-		cov = tf.convert_to_tensor(np.cov(f,rowvar = False), dtype = 'float32')
-		# print(self.reals.shape,self.fakes.shape)
-		# self.T = tf.convert_to_tensor(2*max(np.mean(self.reals_enc), np.mean(self.fakes_enc)), dtype = 'float32')
-		# # print("T",self.T)
-		# self.W = 2*np.pi/self.T
-		# self.freq = 1/self.T
-		# self.Coeffs = tf.multiply(self.n_vec, self.W)
-		# self.coefficients.set_weights([self.Coeffs, self.Coeffs])
-
-		with tf.device(self.device):
-
-			if self.distribution == 'generic':
-				_, ar, ai, _ = self.discriminator_A(f, training = False)
-				ar = tf.expand_dims(tf.reduce_mean(ar, axis = 0), axis = 1) #Lx1 vector
-				ai = tf.expand_dims(tf.reduce_mean(ai, axis = 0), axis = 1) #Lx1 vector
-
-
-				if self.data != 'g1':
-					nt_mu = tf.linalg.matmul(tf.transpose(self.n_vec),mu)
-					nt_cov_n =  tf.expand_dims(tf.linalg.tensor_diag_part(tf.linalg.matmul(tf.transpose(self.n_vec),tf.linalg.matmul(cov,self.n_vec))), axis=1)
-				else:
-					nt_mu = mu*self.n_vec
-					nt_cov_n = cov * tf.expand_dims(tf.linalg.tensor_diag_part(tf.linalg.matmul(tf.transpose(self.n_vec),self.n_vec)), axis=1)
-				#### FIX POWER OF T
-				#tf.constant((1/(self.T))**1)
-				ar_true =  tf.constant((1/(self.T))**0) * tf.math.exp(-0.5 * tf.multiply(nt_cov_n, self.W**2))*(tf.math.cos(tf.multiply(nt_mu, self.W)))
-				ai_true =  tf.constant((1/(self.T))**0) * tf.math.exp(-0.5 * tf.multiply(nt_cov_n, self.W**2 ))*(tf.math.sin(tf.multiply(nt_mu, self.W)))
-
-				error = tf.reduce_mean(tf.abs(ar-ar_true)) + tf.reduce_mean(tf.abs(ai-ai_true))
-				# self.lambda_vec.append(np.log(error.numpy()))
-
-
-			if self.distribution == 'gaussian':
-				if self.data != 'g1':
-					nt_mu = tf.linalg.matmul(tf.transpose(self.n_vec),mu)
-					nt_cov_n =  tf.expand_dims(tf.linalg.tensor_diag_part(tf.linalg.matmul(tf.transpose(self.n_vec),tf.linalg.matmul(cov,self.n_vec))), axis=1)
-				else:
-					# print(cov)
-					nt_mu = mu*tf.transpose(self.n_vec)
-					nt_cov_n = cov * tf.expand_dims(tf.linalg.tensor_diag_part(tf.linalg.matmul(tf.transpose(self.n_vec,[1,0]),self.n_vec)), axis=1)
-
-				ar =  tf.constant((1/(self.T))**0) * tf.math.exp(-0.5 * tf.multiply(nt_cov_n, self.W**2))*(tf.math.cos(tf.multiply(nt_mu, self.W)))
-				ai =  tf.constant((1/(self.T))**0) * tf.math.exp(-0.5 * tf.multiply(nt_cov_n, self.W**2 ))*(tf.math.sin(tf.multiply(nt_mu, self.W)))
-				# print(ar,ai)
-			if self.distribution == 'uniform':
-				a_vec = tf.expand_dims(tf.reduce_min(f, axis = 0),0)
-				b_vec = tf.expand_dims(tf.reduce_max(f, axis = 0),0)
-				nt_a = tf.transpose(tf.linalg.matmul(a_vec, self.n_vec),[1,0])
-				nt_b = tf.transpose(tf.linalg.matmul(b_vec, self.n_vec),[1,0])
-				nt_bma = tf.transpose(tf.linalg.matmul(b_vec - a_vec, self.n_vec),[1,0])
-
-				# tf.constant((1/(self.T))**1)
-				ar =  1 * tf.divide(tf.math.sin(tf.multiply(nt_b ,self.W)) - tf.math.sin(tf.multiply(nt_a ,self.W)), tf.multiply(nt_bma,self.W))
-				ai = - 1 * tf.divide(tf.math.cos(tf.multiply(nt_b ,self.W)) - tf.math.cos(tf.multiply(nt_a ,self.W)), tf.multiply(nt_bma,self.W))
-			
-		return  ar, ai
-
-	def discriminator_ODE(self): 
-		self.alpha_c, self.alpha_s = eval('self.Fourier_Series_Comp(self.reals_enc)') #alpha is reals=> target
-		self.beta_c, self.beta_s = eval('self.Fourier_Series_Comp(self.fakes_enc)')
-
-		with tf.device(self.device):
-			# Vec of len Lx1 , wach entry is ||n||
-			self.Gamma_s = tf.math.divide(tf.constant(1/(self.W**2))*tf.subtract(self.alpha_s, self.beta_s), self.n_norm)
-			self.Gamma_c = tf.math.divide(tf.constant(1/(self.W**2))*tf.subtract(self.alpha_c, self.beta_c), self.n_norm)
-			self.Tau_s = tf.math.divide(tf.constant(1/(2.*(self.W**2)))*tf.square(tf.subtract(self.alpha_s, self.beta_s)), self.n_norm)
-			self.Tau_c = tf.math.divide(tf.constant(1/(2.*(self.W**2)))*tf.square(tf.subtract(self.alpha_c, self.beta_c)), self.n_norm)
-			self.sum_Tau = 1.*tf.reduce_sum(tf.add(self.Tau_s,self.Tau_c))
-
-	def find_and_divide_lambda(self):
-		self.lamb = tf.divide(tf.reduce_sum(self.lambda_x_terms_2) + tf.reduce_sum(self.lambda_x_terms_1),tf.cast(self.batch_size, dtype = 'float32')) + self.sum_Tau
-		self.lamb = tf.cast(2*self.L, dtype = 'float32')*self.lamb # Dont put the sqrt????
-		self.lamb = tf.sqrt(self.lamb)
-		self.real_output = tf.divide(self.real_output, self.lamb)
-		self.real_output = tf.add(self.real_output,0.)
-		self.fake_output = tf.divide(self.fake_output, self.lamb)
-		self.fake_output = tf.add(self.fake_output,0.)
 
 	def loss_FS(self):
 		loss_fake = tf.reduce_mean(self.fake_output)
