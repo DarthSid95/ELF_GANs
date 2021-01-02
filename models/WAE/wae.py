@@ -22,11 +22,14 @@ from gan_topics import *
 '''***********************************************************************************
 ********** WAEFeR ********************************************************************
 ***********************************************************************************'''
-class WAE_ELeGANt(GAN_WAE):
+class WAE_ELeGANt(GAN_WAE, FourierSolver):
 
 	def __init__(self,FLAGS_dict):
 
 		GAN_WAE.__init__(self,FLAGS_dict)
+
+		''' Set up the Fourier Series Solver common to WAEFR and WGAN-FS'''
+		FourierSolver.__init__(self)
 	
 
 		if self.colab and (self.data in ['mnist', 'celeba', 'cifar10', 'svhn']):
@@ -35,7 +38,7 @@ class WAE_ELeGANt(GAN_WAE):
 			self.bar_flag = 1
 
 
-	def main_func(self):
+	def create_models(self):
 		with tf.device(self.device):
 			self.total_count = tf.Variable(0,dtype='int64')
 			eval(self.encdec_model)
@@ -67,21 +70,25 @@ class WAE_ELeGANt(GAN_WAE):
 					self.discriminator_A.summary(line_length=80, print_fn=lambda x: fh.write(x + '\n'))
 					fh.write("\n\n DISCRIMINATOR PART B MODEL: \n\n")
 					self.discriminator_B.summary(line_length=80, print_fn=lambda x: fh.write(x + '\n'))
+		return
 
+	def create_optimizer(self):
+
+		with tf.device(self.device):
 			lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(self.lr_G, decay_steps=100000, decay_rate=0.95, staircase=True)
-
 			#### Added for IMCL rebuttal
 			self.E_optimizer = tf.keras.optimizers.Adam(self.lr_AE_Enc)
 			self.D_optimizer = tf.keras.optimizers.Adam(self.lr_AE_Dec)
 			self.G_optimizer = tf.keras.optimizers.Nadam(self.lr_G)
-			self.Disc_optimizer = tf.keras.optimizers.Adam(self.lr_D)
+			# self.Disc_optimizer = tf.keras.optimizers.Adam(self.lr_D)
+		print("Optimizers Successfully made")	
+		return	
 
-			print("Optimizers Successfully made")		
+	def create_load_checkpoint(self):
 
 		self.checkpoint = tf.train.Checkpoint(E_optimizer = self.E_optimizer,
 								 D_optimizer = self.D_optimizer,
 								 G_optimizer = self.G_optimizer,
-								 Disc_optimizer = self.Disc_optimizer,
 								 Encoder = self.Encoder,
 								 Decoder = self.Decoder,
 								 discriminator_A = self.discriminator_A,
@@ -92,13 +99,18 @@ class WAE_ELeGANt(GAN_WAE):
 		self.checkpoint_prefix = os.path.join(self.checkpoint_dir, "ckpt")
 
 		if self.resume:
-			# self.total_count = int(temp.split('-')[-1])
-			print("Checking for checkpoint file in "+self.checkpoint_dir)
-			self.checkpoint.restore(tf.train.latest_checkpoint(self.checkpoint_dir))
-			# self.Encoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Encoder.h5')
-			# self.Decoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Decoder.h5')
-			# self.discriminator_A = tf.keras.models.load_model(self.checkpoint_dir+'/model_discriminator_A.h5')
-			# self.discriminator_B = tf.keras.models.load_model(self.checkpoint_dir+'/model_discriminator_B.h5')
+			try:
+				self.checkpoint.restore(tf.train.latest_checkpoint(self.checkpoint_dir))
+			except:
+				print("Checkpoint loading Failed. It could be a model mismatch. H5 files will be loaded instead")
+				try:
+					self.Encoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Encoder.h5')
+					self.Decoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Decoder.h5')
+					self.discriminator_A = tf.keras.models.load_model(self.checkpoint_dir+'/model_discriminator_A.h5')
+					self.discriminator_B = tf.keras.models.load_model(self.checkpoint_dir+'/model_discriminator_B.h5')
+				except:
+					print("H5 file loading also failed. Please Check the LOG_FOLDER and RUN_ID flags")
+
 			print("Model restored...")
 			print("Starting at Iteration - "+str(self.total_count.numpy()))
 			print("Starting at Epoch - "+str(int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1))
@@ -280,7 +292,7 @@ class WAE_Base(GAN_WAE):
 			self.bar_flag = 1
 
 	
-	def main_func(self):
+	def create_models(self):
 		with tf.device(self.device):
 			self.total_count = tf.Variable(0,dtype='int64')
 			eval(self.encdec_model)
@@ -304,8 +316,11 @@ class WAE_Base(GAN_WAE):
 					self.Decoder.summary(line_length=80, print_fn=lambda x: fh.write(x + '\n'))
 					fh.write("\n\n DISCRIMINATOR MODEL: \n\n")
 					self.discriminator.summary(line_length=80, print_fn=lambda x: fh.write(x + '\n'))
+		return
 
 
+	def create_optimizer(self):
+		with tf.device(self.device):
 			lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(self.lr_G, decay_steps=1000000, decay_rate=0.95, staircase=True)
 
 			self.E_optimizer = tf.keras.optimizers.Adam(self.lr_AE_Enc)
@@ -313,8 +328,10 @@ class WAE_Base(GAN_WAE):
 			self.G_optimizer = tf.keras.optimizers.Adam(self.lr_G)
 			self.Disc_optimizer = tf.keras.optimizers.Adam(self.lr_D)
 
-			print("Optimizers Successfully made")		
+			print("Optimizers Successfully made")
+		return
 
+	def create_load_checkpoint(self):
 		self.checkpoint = tf.train.Checkpoint(E_optimizer = self.E_optimizer,
 								 D_optimizer = self.D_optimizer,
 								 Disc_optimizer = self.Disc_optimizer,
@@ -326,11 +343,17 @@ class WAE_Base(GAN_WAE):
 		self.checkpoint_prefix = os.path.join(self.checkpoint_dir, "ckpt")
 
 		if self.resume:
-			# self.total_count = int(temp.split('-')[-1])
-			self.checkpoint.restore(tf.train.latest_checkpoint(self.checkpoint_dir))
-			# self.Encoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Encoder.h5')
-			# self.Decoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Decoder.h5')
-			# self.discriminator = tf.keras.models.load_model(self.checkpoint_dir+'/model_discriminator.h5')
+			try:
+				self.checkpoint.restore(tf.train.latest_checkpoint(self.checkpoint_dir))
+			except:
+				print("Checkpoint loading Failed. It could be a model mismatch. H5 files will be loaded instead")
+				try:
+					self.Encoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Encoder.h5')
+					self.Decoder = tf.keras.models.load_model(self.checkpoint_dir+'/model_Decoder.h5')
+					self.discriminator = tf.keras.models.load_model(self.checkpoint_dir+'/model_discriminator.h5')
+				except:
+					print("H5 file loading also failed. Please Check the LOG_FOLDER and RUN_ID flags")
+
 			print("Model restored...")
 			print("Starting at Iteration - "+str(self.total_count.numpy()))
 			print("Starting at Epoch - "+str(int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1))

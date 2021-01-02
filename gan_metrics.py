@@ -413,6 +413,8 @@ class GAN_Metrics():
 			pdf.savefig(fig1)
 			plt.close(fig1)
 
+
+
 	def print_GradGrid(self):
 
 		path = self.metricpath + str(self.total_count.numpy()) + '_'
@@ -554,3 +556,59 @@ class GAN_Metrics():
 			# cbar = fig1.colorbar(cs, shrink=1., orientation = 'horizontal')
 			pdf.savefig(fig1)
 			plt.close(fig1)
+
+
+	def find_sharpness(self,input_ims):
+
+		def laplacian(input, ksize, mode=None, constant_values=None, name=None):
+			"""
+			Apply Laplacian filter to image.
+			Args:
+			  input: A 4-D (`[N, H, W, C]`) Tensor.
+			  ksize: A scalar Tensor. Kernel size.
+			  mode: A `string`. One of "CONSTANT", "REFLECT", or "SYMMETRIC"
+			    (case-insensitive). Default "CONSTANT".
+			  constant_values: A `scalar`, the pad value to use in "CONSTANT"
+			    padding mode. Must be same type as input. Default 0.
+			  name: A name for the operation (optional).
+			Returns:
+			  A 4-D (`[N, H, W, C]`) Tensor.
+			"""
+
+			input = tf.convert_to_tensor(input)
+			ksize = tf.convert_to_tensor(ksize)
+
+			tf.debugging.assert_none_equal(tf.math.mod(ksize, 2), 0)
+
+			ksize = tf.broadcast_to(ksize, [2])
+
+			total = ksize[0] * ksize[1]
+			index = tf.reshape(tf.range(total), ksize)
+			g = tf.where(
+		    	tf.math.equal(index, tf.math.floordiv(total - 1, 2)),
+		    	tf.cast(1 - total, input.dtype),
+		    	tf.cast(1, input.dtype),
+			)
+
+			# print(g)
+
+			# input = pad(input, ksize, mode, constant_values)
+
+			channel = tf.shape(input)[-1]
+			shape = tf.concat([ksize, tf.constant([1, 1], ksize.dtype)], axis=0)
+			g = tf.reshape(g, shape)
+			shape = tf.concat([ksize, [channel], tf.constant([1], ksize.dtype)], axis=0)
+			g = tf.broadcast_to(g, shape)
+			return tf.nn.depthwise_conv2d(input, g, [1, 1, 1, 1], padding="VALID")
+
+		import tensorflow_io as tfio
+		lap_img = laplacian(input_ims,3)
+		if input_ims.shape[3] == 3:
+			reduction_axis = [1,2,3]
+		else:
+			reduction_axis = [1,2]
+		var = tf.square(tf.math.reduce_std(lap_img, axis = reduction_axis))
+		var_out = np.mean(var)
+		# print(var_out)
+		return var_out
+

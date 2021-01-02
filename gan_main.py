@@ -137,7 +137,10 @@ if __name__ == '__main__':
 		print('GAN setup')
 		gan = eval(gan_call)
 		gan.initial_setup()
-		gan.main_func()
+		gan.get_data()
+		gan.create_models()
+		gan.create_optimizer()
+		gan.create_load_checkpoint()
 		print('Worked')
 
 		if gan.mode == 'train':

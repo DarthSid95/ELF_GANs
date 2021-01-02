@@ -25,7 +25,7 @@ GAN_topic is the Overarching class file, where corresponding parents are instant
 '''
 
 '''***********************************************************************************
-********** GAN Baseline setup ********************************************************
+********** GAN Baseline Setup ********************************************************
 ***********************************************************************************'''
 class GAN_Base(GAN_SRC, GAN_DATA_Base):
 
@@ -49,72 +49,21 @@ class GAN_Base(GAN_SRC, GAN_DATA_Base):
 		self.show_result_func = 'self.show_result_'+self.data+'(images = predictions, num_epoch=epoch, show = False, save = True, path = path)'
 		self.FID_func = 'self.FID_'+self.data+'()'
 
-
-		''' Define dataset and tf.data function. batch sizing done'''
-		self.get_data()
-		print(" Batch Size {}, Batch Size * Dloop {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size, self.batch_size_big, self.num_batches,self.print_step, self.save_step))
-
-
-	def get_data(self):
-		# with tf.device('/CPU'):
-		self.train_data = eval(self.gen_func)
-
-		self.batch_size_big = tf.constant(self.batch_size*self.Dloop,dtype='int64')
-		self.num_batches = int(np.floor((self.train_data.shape[0] * self.reps)/self.batch_size))
-		''' Set PRINT and SAVE iters if 0'''
-		self.print_step = tf.constant(max(int(self.num_batches/10),1),dtype='int64')
-		self.save_step = tf.constant(max(int(self.num_batches/2),1),dtype='int64')
-
-		self.train_dataset = eval(self.dataset_func)
-
-		self.train_dataset_size = self.train_data.shape[0]
-
-
-'''***********************************************************************************
-********** GAN ELEGANT setup *********************************************************
-***********************************************************************************'''
-class GAN_ELeGANt(GAN_SRC, GAN_DATA_Base, FourierSolver):
-
-	def __init__(self,FLAGS_dict):
-		''' Set up the GAN_SRC class - defines all GAN architectures'''
-
-		GAN_SRC.__init__(self,FLAGS_dict)
-
-		''' Set up the GAN_DATA class'''
-		GAN_DATA_Base.__init__(self)
-		# eval('GAN_DATA_'+FLAGS.topic+'.__init__(self,data)')
-
-		''' Set up the Fourier Series Solver common to WAEFR and WGAN-FS'''
-		FourierSolver.__init__(self)
-
-
-	def initial_setup(self):
-		''' Initial Setup function. define function names '''
-		self.gen_func = 'self.gen_func_'+self.data+'()'
-		self.gen_model = 'self.generator_model_'+self.data+'()'
-		self.disc_model = 'self.discriminator_model_'+self.data+'()' 
-		self.loss_func = 'self.loss_'+self.loss+'()'   
-		self.dataset_func = 'self.dataset_'+self.data+'(self.train_data, self.batch_size)'
-		self.show_result_func = 'self.show_result_'+self.data+'(images = predictions, num_epoch=epoch, show = False, save = True, path = path)'
-		self.FID_func = 'self.FID_'+self.data+'()'
-
 		if self.loss == 'FS':
-			# self.gen_model = 'self.generator_model_'+self.data+'_'+self.latent_kind+'()'
-			# self.disc_model = 'self.discriminator_model_'+self.data+'_'+self.latent_kind+'()' 
-			# self.EncDec_func = 'self.encoder_model_'+self.data+'_'+self.latent_kind+'()'
+			self.disc_model = 'self.discriminator_model_FS()' 
 			self.DEQ_func = 'self.discriminator_ODE()'
 
 
 		''' Define dataset and tf.data function. batch sizing done'''
-		self.get_data()
-		print(" Batch Size {}, Batch Size * Dloop {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size, self.batch_size_big, self.num_batches,self.print_step, self.save_step))
+		# self.get_data()
+		
 
 
 	def get_data(self):
 		# with tf.device('/CPU'):
 		self.train_data = eval(self.gen_func)
 
-		self.batch_size_big = tf.constant(self.batch_size*self.Dloop,dtype='int64')
+		# self.batch_size_big = tf.constant(self.batch_size*self.Dloop,dtype='int64')
 		self.num_batches = int(np.floor((self.train_data.shape[0] * self.reps)/self.batch_size))
 		''' Set PRINT and SAVE iters if 0'''
 		self.print_step = tf.constant(max(int(self.num_batches/10),1),dtype='int64')
@@ -123,13 +72,13 @@ class GAN_ELeGANt(GAN_SRC, GAN_DATA_Base, FourierSolver):
 		self.train_dataset = eval(self.dataset_func)
 
 		self.train_dataset_size = self.train_data.shape[0]
-
+		print(" Batch Size {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size,  self.num_batches,self.print_step, self.save_step))
 
 
 '''***********************************************************************************
-********** GAN AAE setup *************************************************************
+********** WAE-GAN Setup *************************************************************
 ***********************************************************************************'''
-class GAN_WAE(GAN_SRC, GAN_DATA_WAE, FourierSolver):
+class GAN_WAE(GAN_SRC, GAN_DATA_WAE):
 
 	def __init__(self,FLAGS_dict):
 		''' Set up the GAN_SRC class - defines all GAN architectures'''
@@ -139,9 +88,6 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE, FourierSolver):
 		''' Set up the GAN_DATA class'''
 		GAN_DATA_WAE.__init__(self)
 		# eval('GAN_DATA_'+FLAGS.topic+'.__init__(self,data)')
-
-		''' Set up the Fourier Series Solver common to WAEFR and WGAN-FS'''
-		FourierSolver.__init__(self)
 
 		self.noise_setup()
 
@@ -182,61 +128,8 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE, FourierSolver):
 			self.DEQ_func = 'self.discriminator_ODE()'
 
 		''' Define dataset and tf.data function. batch sizing done'''
-		self.get_data()
-		print(" Batch Size {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size, self.num_batches,self.print_step, self.save_step))
-
-	def find_sharpness(self,input_ims):
-		def laplacian(input, ksize, mode=None, constant_values=None, name=None):
-			"""
-			Apply Laplacian filter to image.
-			Args:
-			  input: A 4-D (`[N, H, W, C]`) Tensor.
-			  ksize: A scalar Tensor. Kernel size.
-			  mode: A `string`. One of "CONSTANT", "REFLECT", or "SYMMETRIC"
-			    (case-insensitive). Default "CONSTANT".
-			  constant_values: A `scalar`, the pad value to use in "CONSTANT"
-			    padding mode. Must be same type as input. Default 0.
-			  name: A name for the operation (optional).
-			Returns:
-			  A 4-D (`[N, H, W, C]`) Tensor.
-			"""
-
-			input = tf.convert_to_tensor(input)
-			ksize = tf.convert_to_tensor(ksize)
-
-			tf.debugging.assert_none_equal(tf.math.mod(ksize, 2), 0)
-
-			ksize = tf.broadcast_to(ksize, [2])
-
-			total = ksize[0] * ksize[1]
-			index = tf.reshape(tf.range(total), ksize)
-			g = tf.where(
-		    	tf.math.equal(index, tf.math.floordiv(total - 1, 2)),
-		    	tf.cast(1 - total, input.dtype),
-		    	tf.cast(1, input.dtype),
-			)
-
-			# print(g)
-
-			# input = pad(input, ksize, mode, constant_values)
-
-			channel = tf.shape(input)[-1]
-			shape = tf.concat([ksize, tf.constant([1, 1], ksize.dtype)], axis=0)
-			g = tf.reshape(g, shape)
-			shape = tf.concat([ksize, [channel], tf.constant([1], ksize.dtype)], axis=0)
-			g = tf.broadcast_to(g, shape)
-			return tf.nn.depthwise_conv2d(input, g, [1, 1, 1, 1], padding="VALID")
-
-		import tensorflow_io as tfio
-		lap_img = laplacian(input_ims,3)
-		if input_ims.shape[3] == 3:
-			reduction_axis = [1,2,3]
-		else:
-			reduction_axis = [1,2]
-		var = tf.square(tf.math.reduce_std(lap_img, axis = reduction_axis))
-		var_out = np.mean(var)
-		# print(var_out)
-		return var_out
+		# self.get_data()
+		# print(" Batch Size {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size, self.num_batches,self.print_step, self.save_step))
 
 	def get_data(self):
 		# with tf.device('/CPU'):
@@ -250,6 +143,8 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE, FourierSolver):
 
 		self.train_dataset = eval(self.dataset_func)
 		self.train_dataset_size = self.train_data.shape[0]
+
+		print(" Batch Size {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size,  self.num_batches,self.print_step, self.save_step))
 
 
 	def get_noise(self,batch_size):
@@ -456,6 +351,9 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE, FourierSolver):
 			self.res_file.write("Interpolation Sharpness - "+str(overall_sharpness))
 
 
+'''***********************************************************************************
+********** The Fourier-series Solver *************************************************
+***********************************************************************************'''
 class FourierSolver():
 
 	def __init__(self):
@@ -629,4 +527,60 @@ class FourierSolver():
 		self.lamb = tf.sqrt(self.lamb)
 		self.real_output = tf.divide(self.real_output, self.lamb)
 		self.fake_output = tf.divide(self.fake_output, self.lamb)
+
+
+'''***********************************************************************************
+********** GAN ELEGANT setup *********************************************************
+***********************************************************************************'''
+# class GAN_ELeGANt(GAN_SRC, GAN_DATA_Base, FourierSolver):
+
+# 	def __init__(self,FLAGS_dict):
+# 		''' Set up the GAN_SRC class - defines all GAN architectures'''
+
+# 		GAN_SRC.__init__(self,FLAGS_dict)
+
+# 		''' Set up the GAN_DATA class'''
+# 		GAN_DATA_Base.__init__(self)
+# 		# eval('GAN_DATA_'+FLAGS.topic+'.__init__(self,data)')
+
+# 		''' Set up the Fourier Series Solver common to WAEFR and WGAN-FS'''
+# 		FourierSolver.__init__(self)
+
+
+# 	def initial_setup(self):
+# 		''' Initial Setup function. define function names '''
+# 		self.gen_func = 'self.gen_func_'+self.data+'()'
+# 		self.gen_model = 'self.generator_model_'+self.data+'()'
+# 		self.disc_model = 'self.discriminator_model_'+self.data+'()' 
+# 		self.loss_func = 'self.loss_'+self.loss+'()'   
+# 		self.dataset_func = 'self.dataset_'+self.data+'(self.train_data, self.batch_size)'
+# 		self.show_result_func = 'self.show_result_'+self.data+'(images = predictions, num_epoch=epoch, show = False, save = True, path = path)'
+# 		self.FID_func = 'self.FID_'+self.data+'()'
+
+# 		if self.loss == 'FS':
+# 			# self.gen_model = 'self.generator_model_'+self.data+'_'+self.latent_kind+'()'
+# 			# self.disc_model = 'self.discriminator_model_'+self.data+'_'+self.latent_kind+'()' 
+# 			# self.EncDec_func = 'self.encoder_model_'+self.data+'_'+self.latent_kind+'()'
+# 			self.DEQ_func = 'self.discriminator_ODE()'
+
+
+# 		''' Define dataset and tf.data function. batch sizing done'''
+# 		# self.get_data()
+# 		# print(" Batch Size {}, Batch Size * Dloop {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size, self.batch_size_big, self.num_batches,self.print_step, self.save_step))
+
+
+# 	def get_data(self):
+# 		# with tf.device('/CPU'):
+# 		self.train_data = eval(self.gen_func)
+
+# 		self.num_batches = int(np.floor((self.train_data.shape[0] * self.reps)/self.batch_size))
+# 		''' Set PRINT and SAVE iters if 0'''
+# 		self.print_step = tf.constant(max(int(self.num_batches/10),1),dtype='int64')
+# 		self.save_step = tf.constant(max(int(self.num_batches/2),1),dtype='int64')
+
+# 		self.train_dataset = eval(self.dataset_func)
+
+# 		self.train_dataset_size = self.train_data.shape[0]
+# 		print(" Batch Size {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size,  self.num_batches,self.print_step, self.save_step))
+
 
