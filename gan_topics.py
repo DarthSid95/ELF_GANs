@@ -75,6 +75,71 @@ class GAN_Base(GAN_SRC, GAN_DATA_Base):
 		print(" Batch Size {}, Final Num Batches {}, Print Step {}, Save Step {}".format(self.batch_size,  self.num_batches,self.print_step, self.save_step))
 
 
+	def train(self):    
+		start = int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0]*self.reps)) + 1
+		for epoch in range(start,self.num_epochs): 
+
+			if self.pbar_flag:
+				bar = self.pbar(epoch)  
+			start = time.time()
+			batch_count = tf.Variable(0,dtype='int64')
+			start_1 = 0
+			for image_batch in self.train_dataset:
+
+				self.total_count.assign_add(1)
+				batch_count.assign_add(1)
+				start_1 = time.time()
+				with tf.device(self.device):
+					# eval('self.train_step_'+self.latent_kind+'(image_batch)')
+					self.train_step(image_batch)
+					self.eval_metrics()
+
+				train_time = time.time()-start_1
+
+				if self.pbar_flag:
+					bar.postfix[0] = f'{batch_count.numpy():3.0f}'
+					bar.postfix[1] = f'{self.D_loss.numpy():2.4e}'
+					bar.postfix[2] = f'{self.G_loss.numpy():2.4e}'
+					bar.update(self.batch_size.numpy())
+				if (batch_count.numpy() % self.print_step.numpy()) == 0 or self.total_count <= 2:
+					if self.res_flag:
+						self.res_file.write("Epoch {:>3d} Batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4e}; G_loss - {:>2.4e}\n".format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy()))
+
+				#print AE resuts every 100 steps during AE training, and every 1000 steps after AE training block
+				self.print_batch_outputs(epoch)
+
+				# Save the model every SAVE_ITERS iterations
+				if (self.total_count.numpy() % self.save_step.numpy()) == 0:
+					if self.save_all:
+						self.checkpoint.save(file_prefix = self.checkpoint_prefix)
+					else:
+						self.manager.save()
+
+			if self.pbar_flag:
+				bar.close()
+				del bar
+			
+			tf.print ('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
+			if self.res_flag:
+				self.res_file.write('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
+			self.save_epoch_h5models()
+
+
+	def print_batch_outputs(self,epoch):
+		if (self.total_count.numpy() <= 5) and self.data != 'gmm8':
+			self.generate_and_save_batch(epoch)
+		if ((self.total_count.numpy() % self.save_step.numpy()) == 0) or ((self.total_count.numpy() % 100) == 0 and self.data in ['g1', 'g2']):
+			self.generate_and_save_batch(epoch)
+
+
+	def test(self):
+		self.impath += '_Testing_'
+		for img_batch in self.train_dataset:
+			self.reals = img_batch
+			self.generate_and_save_batch(0)
+			return
+
+
 '''***********************************************************************************
 ********** WAE-GAN Setup *************************************************************
 ***********************************************************************************'''
@@ -181,16 +246,71 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE):
 
 		if self.noise_kind == 'gaussian_01':
 			noise = tfp.distributions.TruncatedNormal(loc=0.5, scale=0.2, low=0., high=1.).sample([batch_size, self.latent_dims])
-
 		return noise
 
+
+	def train(self):    
+		start = int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1 
+		for epoch in range(start,self.num_epochs):
+			if self.pbar_flag:
+				bar = self.pbar(epoch)
+			start = time.time()
+			batch_count = tf.Variable(0,dtype='int64')
+			start_1 = 0
+
+			for image_batch in self.train_dataset:
+				self.total_count.assign_add(1)
+				batch_count.assign_add(self.Dloop)
+				start_1 = time.time()
+				
+				with tf.device(self.device):
+					if epoch < self.GAN_pretrain_epochs:
+						self.pretrain_step_GAN(image_batch)
+					else:
+						self.train_step(image_batch)
+						self.eval_metrics()
+				
+				train_time = time.time()-start_1
+
+				if self.pbar_flag:
+					bar.postfix[0] = f'{batch_count.numpy():4.0f}'
+					bar.postfix[1] = f'{self.D_loss.numpy():2.4e}'
+					bar.postfix[2] = f'{self.G_loss.numpy():2.4e}'
+					bar.postfix[3] = f'{self.AE_loss.numpy():2.4e}'
+					bar.update(self.batch_size.numpy())
+
+				if (batch_count.numpy() % self.print_step.numpy()) == 0 or self.total_count <= 2:
+					if self.res_flag:
+						self.res_file.write("Epoch {:>3d} Batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4f}; G_loss - {:>2.4f}; AE_loss - {:>2.4f} \n".format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy(),self.AE_loss.numpy()))
+
+				self.print_batch_outputs(epoch)
+
+				# Save the model every SAVE_ITERS iterations
+				if (self.total_count.numpy() % self.save_step.numpy()) == 0:
+					if self.save_all:
+						self.checkpoint.save(file_prefix = self.checkpoint_prefix)
+					else:
+						self.manager.save()
+		
+			if self.pbar_flag:
+				bar.close()
+				del bar
+
+			tf.print ('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
+			self.save_epoch_h5models()
+
+	def print_batch_outputs(self,epoch):		
+		if (self.total_count.numpy() <= 2) or ((self.total_count.numpy() % self.save_step.numpy()) == 0) or ((self.total_count.numpy() % 250) ==0):
+			self.generate_and_save_batch(epoch)
+		if (self.total_count.numpy() % 1000) == 0:
+			self.test()
+
 	def test(self):
-		###### Random Saples
+		###### Random Samples
 		for i in range(10):
 			path = self.impath+'_Testing_'+str(self.total_count.numpy())+'_TestCase_'+str(i)+'.png'
 			noise = self.get_noise(self.batch_size)
 			images = self.Decoder(noise)
-			
 
 			sharpness = self.find_sharpness(images)
 			try:
@@ -217,7 +337,7 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE):
 			plt.savefig(path)
 			plt.close()
 
-		###### Random Samples - Sharpness
+		###### Random Samples - Sharpness averaging measure
 		overall_sharpness = np.mean(np.array(shaprpness_vec))
 		if self.mode == 'test':
 			print("Random Sharpness - " + str(overall_sharpness))
@@ -357,6 +477,8 @@ class GAN_WAE(GAN_SRC, GAN_DATA_WAE):
 class FourierSolver():
 
 	def __init__(self):
+		from itertools import product as cart_prod
+		
 		self.M = self.terms #Number of terms in FS
 		self.T = self.sigma
 		self.W = np.pi/self.T

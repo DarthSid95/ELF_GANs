@@ -93,21 +93,9 @@ MNIST, Fashion MNIST and CIFAR-10 are loaded from TensorFlow-Datasets. The Celeb
 ```
 python download_celeba.py
 ```
-Alternatively you can manually download the ``img_align_celeba`` folder and the ``list_attr_celeba.csv`` file, and save them at ``RumiGANs/data/CelebA/``.
+Alternatively you can manually download the ``img_align_celeba`` folder and the ``list_attr_celeba.csv`` file, and save them at ``ELF_GANs/data/CelebA/``.
 
 
-## Training  
-
-The code provides training procedure for baseline Standard GAN^1, LSGAN^2, WGAN^3, WGAN-GP^4, and each of their corresponding *Rumi* variants. Additionally, ported implementations of auxiliary classifier GAN (ACGAN^5), Twin ACGAN^6 and conditional GAN with projection discriminator (CGAN-PD^7) are included.   
-
-
-1) The fastest was to train a model is by running the bash files in ``RumiGANs/bash_files/train/``. The train the Model for a given test case: Code to train each ``Figure X Subfig (y)`` is present in these files. Uncomment the desired command to train for the associated testcase. For example, to generate images from Rumi-LSGAN on CelebA with class imbalance, Figure 4(i), uncomment ``Code for Figure 4.i`` in the ``train_RumiGAN.sh`` file in the above folder and run  
-```
-bash bash_files/train/train_RumiGAN.sh
-```
-2) Aternatively, you can train any model of your choice by running ``gan_main.py`` with custom flags and modifiers. The list of flags and their defauly values are are defined in  ``gan_main.py``.    
-
-3) **Training on Colab**: This code is capable of training models on Google Colab (although it is *not* optimized for this). For those familiar with the approach, this repository could be cloned to your google drive and steps (1) or (2) could be used for training. CelebA must be downloaded to you current instance on Colab as reading data from GoogleDrive currently causes a Timeout error.  Setting the flags ``--colab_data 1``,  ``--latex_plot_flag 0``, and ``--pbar_flag 0`` is advisable. The ``colab_data`` flag modifies CelebA data-handling code to read data from the local folder, rather than ``RumiGANs/data/CelebA/``.  The ``latex_plot_flag`` flag removes code dependency on latex for plot labels, since the Colab isntance does not native include this. (Alternatively, you could install texlive_full in your colab instance). Lastly, turning off the ``pbar_flag`` was found to prevent the browser from eating too much RAM when training the model. **The .ipynb file for training on Colab will be included shortly**. 
 
 ----------------------------------
 ----------------------------------

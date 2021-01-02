@@ -27,8 +27,6 @@ class WGAN_ELeGANt(GAN_Base, FourierSolver):
 
 	def __init__(self,FLAGS_dict):
 
-		from itertools import product as cart_prod
-
 		GAN_Base.__init__(self,FLAGS_dict)
 
 		''' Set up the Fourier Series Solver common to WAEFR and WGAN-FS'''
@@ -121,75 +119,13 @@ class WGAN_ELeGANt(GAN_Base, FourierSolver):
 			print("Starting at Epoch - "+str(int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1))
 		return
 
-
-	def train(self):    
-		start = int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0]*self.reps)) + 1
-		for epoch in range(start,self.num_epochs): 
-
-			if self.pbar_flag:
-				bar = self.pbar(epoch)  
-			start = time.time()
-			batch_count = tf.Variable(0,dtype='int64')
-			start_1 = 0
-			for image_batch in self.train_dataset:
-
-				self.total_count.assign_add(1)
-				batch_count.assign_add(1)
-				start_1 = time.time()
-				with tf.device(self.device):
-					# eval('self.train_step_'+self.latent_kind+'(image_batch)')
-					self.train_step(image_batch)
-					self.eval_metrics()
-
-
-				train_time = time.time()-start_1
-
-				if self.pbar_flag:
-					bar.postfix[0] = f'{batch_count.numpy():3.0f}'
-					bar.postfix[1] = f'{self.D_loss.numpy():2.4e}'
-					bar.postfix[2] = f'{self.G_loss.numpy():2.4e}'
-					bar.update(self.batch_size.numpy())
-				if (batch_count.numpy() % self.print_step.numpy()) == 0 or self.total_count <= 2:
-					if self.res_flag:
-						self.res_file.write("Epoch {:>3d} Batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4e}; G_loss - {:>2.4e}\n".format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy()))
-
-
-				#print AE resuts every 100 steps during AE training, and every 1000 steps after AE training block
-				self.print_batch_outputs(epoch)
-
-				# Save the model every SAVE_ITERS iterations
-				if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-					if self.save_all:
-						self.checkpoint.save(file_prefix = self.checkpoint_prefix)
-					else:
-						self.manager.save()
-
-			if self.pbar_flag:
-				bar.close()
-				del bar
 			
-			tf.print ('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
-			if self.res_flag:
-				self.res_file.write('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
 
-			self.generator.save(self.checkpoint_dir + '/model_generator.h5', overwrite = True)
-			self.discriminator_A.save(self.checkpoint_dir + '/model_discriminator_A.h5', overwrite = True)
-			self.discriminator_B.save(self.checkpoint_dir + '/model_discriminator_B.h5', overwrite = True)
-
-
-	def print_batch_outputs(self,epoch):
-		if (self.total_count.numpy() <= 5) and self.data != 'gmm8':
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-			self.generate_and_save_batch(epoch)
-
-
-	def test(self):
-		self.impath += '_Testing_'
-		for img_batch in self.train_dataset:
-			self.reals = img_batch
-			self.generate_and_save_batch(0)
-			return
+	def save_epoch_h5models(self):
+		self.generator.save(self.checkpoint_dir + '/model_generator.h5', overwrite = True)
+		self.discriminator_A.save(self.checkpoint_dir + '/model_discriminator_A.h5', overwrite = True)
+		self.discriminator_B.save(self.checkpoint_dir + '/model_discriminator_B.h5', overwrite = True)
+		return
 
 	def train_step(self,reals_all):
 
@@ -285,7 +221,6 @@ class WGAN_Base(GAN_Base):
 	return	
 
 	def create_load_checkpoint(self):
-
 		self.checkpoint = tf.train.Checkpoint(G_optimizer = self.G_optimizer, \
 							Disc_optimizer = self.Disc_optimizer, \
 							generator = self.generator, \
@@ -312,63 +247,10 @@ class WGAN_Base(GAN_Base):
 
 	#################################################################
 
-	def train(self):    
-		start = int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1 
-		for epoch in range(start,self.num_epochs):
-			if self.pbar_flag:
-				bar = self.pbar(epoch)
-			start = time.time()
-			batch_count = tf.Variable(0,dtype='int64')
-			start_1 = 0
-
-			for image_batch in self.train_dataset:
-				self.total_count.assign_add(1)
-				# batch_count.assign_add(self.Dloop)
-				batch_count.assign_add(1)
-				start_1 = time.time()
-				
-				with tf.device(self.device):
-					self.train_step(image_batch)
-					self.eval_metrics()
-				
-				train_time = time.time()-start_1
-
-					
-				if self.pbar_flag:
-					bar.postfix[0] = f'{batch_count.numpy():6.0f}'
-					bar.postfix[1] = f'{self.D_loss.numpy():2.4e}'
-					bar.postfix[2] = f'{self.G_loss.numpy():2.4e}'
-					bar.update(self.batch_size.numpy())
-				if (batch_count.numpy() % self.print_step.numpy()) == 0 or self.total_count <= 2:
-					if self.res_flag:
-						self.res_file.write("Epoch {:>3d} Batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4f}; G_loss - {:>2.4f} \n".format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy()))
-					
-
-				self.print_batch_outputs(epoch)
-
-				# Save the model every SAVE_ITERS iterations
-				if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-					if self.save_all:
-						self.checkpoint.save(file_prefix = self.checkpoint_prefix)
-					else:
-						self.manager.save()
-
-			if self.pbar_flag:
-				bar.close()
-				del bar
-
-			tf.print ('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
-			self.generator.save(self.checkpoint_dir + '/model_generator.h5', overwrite = True)
-			self.discriminator.save(self.checkpoint_dir + '/model_discriminator.h5', overwrite = True)
-
-
-	def print_batch_outputs(self,epoch):		
-		if self.total_count.numpy() <= 2:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 100) == 0 and self.data in ['g1', 'g2']:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-			self.generate_and_save_batch(epoch)
+	def save_epoch_h5models(self):
+		self.generator.save(self.checkpoint_dir + '/model_generator.h5', overwrite = True)
+		self.discriminator.save(self.checkpoint_dir + '/model_discriminator.h5', overwrite = True)
+		return
 
 	#################################################################
 

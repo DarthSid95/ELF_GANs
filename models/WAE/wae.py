@@ -114,79 +114,15 @@ class WAE_ELeGANt(GAN_WAE, FourierSolver):
 			print("Model restored...")
 			print("Starting at Iteration - "+str(self.total_count.numpy()))
 			print("Starting at Epoch - "+str(int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1))
+			
 
 
-	def train(self):    
-		start = int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1 
-		for epoch in range(start,self.num_epochs):
-			if self.pbar_flag:
-				bar = self.pbar(epoch)
-			start = time.time()
-			batch_count = tf.Variable(0,dtype='int64')
-			start_1 = 0
-
-			for image_batch in self.train_dataset:
-				self.total_count.assign_add(1)
-				batch_count.assign_add(self.Dloop)
-				start_1 = time.time()
-				
-				with tf.device(self.device):
-					if epoch < self.GAN_pretrain_epochs:
-						self.pretrain_step_GAN(image_batch)
-					else:
-						self.train_step(image_batch)
-						self.eval_metrics()
-				
-				train_time = time.time()-start_1
-
-				if self.pbar_flag:
-					bar.postfix[0] = f'{batch_count.numpy():4.0f}'
-					bar.postfix[1] = f'{self.D_loss.numpy():2.4e}'
-					bar.postfix[2] = f'{self.G_loss.numpy():2.4e}'
-					bar.postfix[3] = f'{self.AE_loss.numpy():2.4e}'
-					bar.update(self.batch_size.numpy())
-
-				if (batch_count.numpy() % self.print_step.numpy()) == 0 or self.total_count <= 2:
-					if self.res_flag:
-						self.res_file.write("Epoch {:>3d} Batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4f}; G_loss - {:>2.4f}; AE_loss - {:>2.4f} \n".format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy(),self.AE_loss.numpy()))
-
-				self.print_batch_outputs(epoch)
-
-				# Save the model every SAVE_ITERS iterations
-				if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-					if self.save_all:
-						self.checkpoint.save(file_prefix = self.checkpoint_prefix)
-					else:
-						self.manager.save()
-		
-
-			if self.pbar_flag:
-				bar.close()
-				del bar
-
-			tf.print ('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
-			self.Encoder.save(self.checkpoint_dir + '/model_Encoder.h5', overwrite = True)
-			self.Decoder.save(self.checkpoint_dir + '/model_Decoder.h5', overwrite = True)
-			self.discriminator_A.save(self.checkpoint_dir + '/model_discriminator_A.h5', overwrite = True)
-			self.discriminator_B.save(self.checkpoint_dir + '/model_discriminator_B.h5', overwrite = True)
-
-		# if self.KLD_flag:
-		# 	self.printKLD()
-
-
-
-	def print_batch_outputs(self,epoch):		
-		if self.total_count.numpy() <= 2:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 100) == 0 and self.data in ['g1', 'g2']:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 150) == 0:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 1000) == 0:
-			self.test()
-
+	def save_epoch_h5models(self):
+		self.Encoder.save(self.checkpoint_dir + '/model_Encoder.h5', overwrite = True)
+		self.Decoder.save(self.checkpoint_dir + '/model_Decoder.h5', overwrite = True)
+		self.discriminator_A.save(self.checkpoint_dir + '/model_discriminator_A.h5', overwrite = True)
+		self.discriminator_B.save(self.checkpoint_dir + '/model_discriminator_B.h5', overwrite = True)
+		return
 
 
 	def pretrain_step_GAN(self,reals_all):
@@ -357,78 +293,13 @@ class WAE_Base(GAN_WAE):
 			print("Model restored...")
 			print("Starting at Iteration - "+str(self.total_count.numpy()))
 			print("Starting at Epoch - "+str(int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1))
+			
 
-
-	def train(self):    
-		start = int((self.total_count.numpy() * self.batch_size) / (self.train_data.shape[0])) + 1 
-		for epoch in range(start,self.num_epochs):
-			if self.pbar_flag:
-				bar = self.pbar(epoch)
-			start = time.time()
-			batch_count = tf.Variable(0,dtype='int64')
-			start_1 = 0
-
-			for image_batch in self.train_dataset:
-				self.total_count.assign_add(1)
-				batch_count.assign_add(1)
-				start_1 = time.time()
-				
-				with tf.device(self.device):
-					if epoch < self.GAN_pretrain_epochs:
-						self.pretrain_step_GAN(image_batch)
-					else:
-						self.train_step(image_batch)
-						self.eval_metrics()
-				
-				train_time = time.time()-start_1
-
-					
-				if self.pbar_flag:
-					bar.postfix[0] = f'{batch_count.numpy():4.0f}'
-					bar.postfix[1] = f'{self.D_loss.numpy():2.4e}'
-					bar.postfix[2] = f'{self.G_loss.numpy():2.4e}'
-					bar.postfix[3] = f'{self.AE_loss.numpy():2.4e}'
-					bar.update(self.batch_size.numpy())
-				if (batch_count.numpy() % self.print_step.numpy()) == 0 or self.total_count <= 2:
-					# tf.print ('Epoch {:>3d} batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4f}; G_loss - {:>2.4f}'.format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy()))
-					if self.res_flag:
-						self.res_file.write("Epoch {:>3d} Batch {:>3d} in {:>2.4f} sec; D_loss - {:>2.4f}; G_loss - {:>2.4f}; AE_loss - {:>2.4f} \n".format(epoch,batch_count.numpy(),train_time,self.D_loss.numpy(),self.G_loss.numpy(),self.AE_loss.numpy()))
-					
-
-				self.print_batch_outputs(epoch)
-
-				# Save the model every SAVE_ITERS iterations
-				if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-					if self.save_all:
-						self.checkpoint.save(file_prefix = self.checkpoint_prefix)
-					else:
-						self.manager.save()
-
-				if (self.total_count.numpy() % 1000) == 0:
-					self.test()
-
-			if self.pbar_flag:
-				bar.close()
-				del bar
-
-
-			tf.print ('Time for epoch {} is {} sec'.format(epoch, time.time()-start))
-			self.Encoder.save(self.checkpoint_dir + '/model_Encoder.h5', overwrite = True)
-			self.Decoder.save(self.checkpoint_dir + '/model_Decoder.h5', overwrite = True)
-			self.discriminator.save(self.checkpoint_dir + '/model_discriminator.h5', overwrite = True)
-
-
-	def print_batch_outputs(self,epoch):		
-		if self.total_count.numpy() <= 2:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 100) == 0 and self.data in ['g1', 'g2']:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % self.save_step.numpy()) == 0:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 250) == 0:
-			self.generate_and_save_batch(epoch)
-		if (self.total_count.numpy() % 1000) == 0:
-			self.test()
+	def save_epoch_h5models(self):
+		self.Encoder.save(self.checkpoint_dir + '/model_Encoder.h5', overwrite = True)
+		self.Decoder.save(self.checkpoint_dir + '/model_Decoder.h5', overwrite = True)
+		self.discriminator.save(self.checkpoint_dir + '/model_discriminator.h5', overwrite = True)
+		return
 	
 
 	def pretrain_step_GAN(self,reals_all):
