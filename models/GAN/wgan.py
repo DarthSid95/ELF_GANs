@@ -18,7 +18,6 @@ from absl import app
 from absl import flags
 
 from gan_topics import *
-# tf.keras.backend.set_floatx('float64')
 
 '''***********************************************************************************
 ********** WGAN ELEGANT WITH LATENT **************************************************
@@ -46,12 +45,6 @@ class WGAN_ELeGANt(GAN_Base, FourierSolver):
 			self.discriminator_A.set_weights([self.Coeffs])
 			self.discriminator_B = self.discriminator_model_FS_B()
 			
-			print("Model Successfully made")
-
-			#### FIX POWER OF 0.5
-			# self.bias = np.array([0])`
-			self.pdf = eval(self.disc_model)
-			self.pgf = eval(self.disc_model)
 
 			print("Model Successfully made")
 			print("\n\n GENERATOR MODEL: \n\n")

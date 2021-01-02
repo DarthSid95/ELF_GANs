@@ -264,6 +264,7 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 		plt.close()
 		return
 
+
 	def print_gaussian_stats(self):
 		## Uncomment if you need Image Latent space statitics printed
 		print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False)))
@@ -271,6 +272,7 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 		if self.res_flag:# and num_epoch>self.AE_count:
 			self.res_file.write("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False), np.mean(self.fakes_enc, axis = 0), np.cov(self.fakes_enc,rowvar = False) ))
 		return
+
 
 	def print_mnist_latent(self, path = path):
 
@@ -303,13 +305,13 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 				ax1.get_yaxis().set_visible(False)
 				ax1.set_xlim([-3,3])
 				ax1.set_ylim([-3,3])
-				if num_epoch>self.AE_count:
-					ax1.scatter(self.fakes_enc[:,0], self.fakes_enc[:,1], c='r', linewidth = 1.5, label='Target Class Data', marker = '.')
+				ax1.scatter(self.fakes_enc[:,0], self.fakes_enc[:,1], c='r', linewidth = 1.5, label='Target Class Data', marker = '.')
 				ax1.scatter(self.reals_enc[:,0], self.reals_enc[:,1], c='b', linewidth = 1.5, label='Source Class Data', marker = '.')
 				ax1.legend(loc = 'upper right')
 				fig1.tight_layout()
 				pdf.savefig(fig1)
 				plt.close(fig1)
+
 
 	def image_grid(self,input_tensor, grid_shape, image_shape=(32, 32), num_channels=3):
 		"""Arrange a minibatch of images into a grid to form a single image.
@@ -357,6 +359,7 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 		input_tensor = tf.transpose(a = input_tensor, perm = [0, 2, 1, 3])
 		input_tensor = tf.reshape(input_tensor, [1, height, width, num_channels])
 		return input_tensor[0]
+
 
 	def h5_from_checkpoint(self):
 		self.generate_and_save_batch(999)
