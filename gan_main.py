@@ -59,11 +59,14 @@ flags.DEFINE_string('GPU', '0,1', """GPU's made visible '0', '1', or '0,1' """)
 flags.DEFINE_string('device', '0', """Which GPU device to run on: 0,1 or -1(CPU)""")
 flags.DEFINE_string('noise_kind', 'gaussian', """Type of Noise for WAE latent prior""")
 
+flags.DEFINE_float('data_mean', 0.0, """Mean of taget Gaussian data""")
+flags.DEFINE_float('data_var', 1.0, """Variance of taget Gaussian data""")
+
 '''Flags just for WGAN-FS forms'''
 flags.DEFINE_integer('terms', 50, """N for 0-M for FS.""") #Matters only if g
 flags.DEFINE_float('sigma',75, """approximation sigma of data distribution""") 
 flags.DEFINE_integer('lambda_d', 20000, """Period as a multiple of sigmul*sigma""") ##NeedToKill
-flags.DEFINE_string('latent_kind', 'AE', """AE/DCT/W/AE2/AE3/Cycle - need to make W""") ##NeedToKill
+flags.DEFINE_string('latent_kind', 'base', """AE/DCT/W/AE2/AE3/Cycle - need to make W""") ##NeedToKill
 flags.DEFINE_string('distribution', 'generic', """generic/gaussian""")
 flags.DEFINE_integer('latent_dims', 10, """Dimension of latent representation""") #20 on GMM 8 worked #Matters only if not g  ;AE3 takes lxl 14 or 7; DCt lxl
 flags.DEFINE_integer('L', 25000, """Number of terms in summation""")
@@ -133,33 +136,34 @@ if __name__ == '__main__':
 	gan_call = FLAGS.gan + '_' + FLAGS.topic + '(FLAGS_dict)'
 
 	# with tf.device('/GPU:'+FLAGS.device):
-	try:
-		print('GAN setup')
-		gan = eval(gan_call)
-		gan.initial_setup()
-		gan.get_data()
-		gan.create_models()
-		gan.create_optimizer()
-		gan.create_load_checkpoint()
-		print('Worked')
+	# try:
+	print('GAN setup')
+	gan = eval(gan_call)
+	gan.initial_setup()
+	gan.get_data()
+	gan.create_models()
+	gan.create_optimizer()
+	gan.create_load_checkpoint()
+	print('Worked')
 
-		if gan.mode == 'train':
-			print(gan.mode)
-			gan.train()
-			gan.test()
+	if gan.mode == 'train':
+		print(gan.mode)
+		gan.train()
+		gan.test()
 
-		if gan.mode == 'h5_from_checkpoint':
-			gan.h5_from_checkpoint()
+	if gan.mode == 'h5_from_checkpoint':
+		gan.h5_from_checkpoint()
 
-		if gan.mode == 'test':
-			gan.test()
+	if gan.mode == 'test':
+		gan.test()
 
-		if gan.mode == 'metrics':
-			gan.eval_metrics()
+	if gan.mode == 'metrics':
+		gan.eval_metrics()
 
-	except Exception as e:
-		print("Exiting Execution due to error.")
-		exit(0)
+	# except Exception as e:
+	# 	print("Exiting Execution due to error.")
+	# 	print(e)
+	# 	exit(0)
 
 ###############################################################################  
 	

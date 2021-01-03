@@ -211,7 +211,7 @@ class WGAN_Base(GAN_Base):
 
 
 			print("Optimizers Successfully made")	
-	return	
+		return	
 
 	def create_load_checkpoint(self):
 		self.checkpoint = tf.train.Checkpoint(G_optimizer = self.G_optimizer, \

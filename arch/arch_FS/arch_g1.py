@@ -24,6 +24,8 @@ class ARCH_g1():
 		iden_init_fn = tf.function(iden_init_fn, autograph=False)
 		bias_init_fn = tf.keras.initializers.Zeros()
 		bias_init_fn = tf.function(bias_init_fn, autograph=False)
+		init_fn = tf.random_normal_initializer(mean=0.0, stddev=0.001, seed=None)
+		init_fn = tf.function(init_fn, autograph=False)
 
 		model = tf.keras.Sequential()
 		model.add(layers.Dense(1, use_bias=True, input_shape=(self.noise_dims,),kernel_initializer=iden_init_fn, bias_initializer = bias_init_fn))
@@ -49,7 +51,7 @@ class ARCH_g1():
 		disc -= 0.50
 
 		true_classifier = np.ones_like(basis)
-		true_classifier[pd_vals > pg_vals] = 0
+		true_classifier[pd_vals < pg_vals] = 0
 
 		if self.paper and (self.total_count.numpy() == 1 or self.total_count.numpy()%1000 == 0):
 			np.save(path+'_disc.npy',np.array(disc))

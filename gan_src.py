@@ -26,7 +26,7 @@ from numpy import iscomplexobj
 
 
 from arch import *
-from ops import *
+# from ops import *
 from gan_metrics import *
 
 '''
@@ -221,14 +221,14 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 
 		path = self.impath + str(self.total_count.numpy())
 		path_reals = path.split('.')[0]+'gt.png'
-		label = 'Epoch {0}'.format(num_epoch)
+		label = 'Epoch {0}'.format(epoch)
 
 		#### AAE are Autoencoders, not generative models.
 		if self.gan == 'WAE':
 			predictions = self.Decoder(self.Encoder(self.reals[0:self.num_to_print*self.num_to_print], training = False), training = False)
 		else:
 			predictions = self.generator(noise, training=False)
-			if self.loss == 'FS':
+			# if self.loss == 'FS':
 		if self.gan == 'WAE':
 			predictions = (predictions + 1.0)/2.0
 		# eval(self.show_result_func)
@@ -238,14 +238,15 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 			eval(self.show_result_func)
 		else:
 			self.save_image_batch(images = predictions, label =label,  path = path)
+			
 			if self.data == 'mnist' and self.latent_dims == 2:
 				self.print_mnist_latent(path = path)
 			else:
 				self.print_gaussian_stats()
 
-		if epoch <= 2:
-			reals_to_display = (self.reals[0:self.num_to_print*self.num_to_print] + 1.0)/2.0
-			self.save_reals_batch(images = reals_to_display, label = label, path = path_reals)
+			if epoch <= 2:
+				reals_to_display = (self.reals[0:self.num_to_print*self.num_to_print] + 1.0)/2.0
+				self.save_reals_batch(images = reals_to_display, label = label, path = path_reals)
 
 
 	def save_image_batch(self, images = None, label = 'Default Image Label', path = 'result.png'):
@@ -274,7 +275,7 @@ class GAN_SRC(eval('ARCH_'+FLAGS.data), GAN_Metrics): #mnist, ARCH_celeba, ARCG_
 		return
 
 
-	def print_mnist_latent(self, path = path):
+	def print_mnist_latent(self, path = 'temp.png'):
 
 		print("Gaussian Stats : True mean {} True Cov {} \n Fake mean {} Fake Cov {}".format(np.mean(self.fakes_enc,axis = 0), np.cov(self.fakes_enc,rowvar = False), np.mean(self.reals_enc, axis = 0), np.cov(self.reals_enc,rowvar = False) ))
 		if self.res_flag:

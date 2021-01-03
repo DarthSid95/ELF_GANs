@@ -478,7 +478,7 @@ class FourierSolver():
 
 	def __init__(self):
 		from itertools import product as cart_prod
-		
+
 		self.M = self.terms #Number of terms in FS
 		self.T = self.sigma
 		self.W = np.pi/self.T
@@ -527,7 +527,7 @@ class FourierSolver():
 		if self.gan == 'WGAN':
 			self.target_data = 'self.reals_enc'
 			self.generator_data = 'self.fakes_enc'
-		elif: self.gan = 'WAE':
+		elif self.gan == 'WAE':
 			self.traget_data = 'self.fakes_enc'
 			self.generator_data = 'self.reals_enc'
 		return
@@ -632,7 +632,7 @@ class FourierSolver():
 		return  ar, ai
 
 	def discriminator_ODE(self): 
-		self.alpha_c, self.alpha_s = self.Fourier_Series_Comp(eval(self.traget_data))
+		self.alpha_c, self.alpha_s = self.Fourier_Series_Comp(eval(self.target_data))
 		self.beta_c, self.beta_s = self.Fourier_Series_Comp(eval(self.generator_data))
 
 		with tf.device(self.device):

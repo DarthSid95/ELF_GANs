@@ -12,6 +12,10 @@ import glob
 from tqdm.autonotebook import tqdm
 import shutil
 
+
+import tensorflow_probability as tfp
+tfd = tfp.distributions
+
 # import tensorflow_probability as tfp
 # tfd = tfp.distributions
 
@@ -22,7 +26,7 @@ from scipy.linalg import sqrtm
 import scipy as sp
 from numpy import iscomplexobj
 
-from ext_resources import *
+# from ext_resources import *
 
 class GAN_Metrics():
 
@@ -48,7 +52,7 @@ class GAN_Metrics():
 
 			if self.data in ['g1', 'g2', 'gmm8']:
 				self.KLD_steps = 10
-				if self.data in [ 'gmm8',]:
+				if self.data in ['gmm8']:
 					self.KLD_func = self.KLD_sample_estimate
 				else:
 					self.KLD_func = self.KLD_Gaussian
@@ -319,7 +323,7 @@ class GAN_Metrics():
 				Distribution = tfd.MultivariateNormalFullCovariance
 				P_dist = Distribution(loc=get_mean(P), covariance_matrix=get_cov(P))
 				Q_dist = Distribution(loc=get_mean(Q), covariance_matrix=get_cov(Q))
-		
+	
 			self.KLD_vec.append([P_dist.kl_divergence(Q_dist).numpy(), self.total_count.numpy()])
 		except:
 			print("KLD error - Falling back to prev value")
@@ -327,23 +331,18 @@ class GAN_Metrics():
 				self.KLD_vec.append([self.KLD_vec[-1]*0.9, self.total_count.numpy()])
 			except:
 				self.KLD_vec.append([0, self.total_count.numpy()])
-		# print('KLD: ',self.KLD_vec[-1])
+			# print('KLD: ',self.KLD_vec[-1])
 		return
 
 
 	def update_KLD(self):
-		
 		if self.topic == 'ELeGANt':
-			if self.loss == 'FS' and (self.latent_kind == 'AE' or self.latent_kind == 'AAE'):
-				self.KLD_func(self.reals_enc,self.fakes_enc)
-			else:
-				self.KLD_func(self.reals,self.fakes)
-		elif self.topic == 'AAE':
+			self.KLD_func(self.reals,self.fakes)
+		elif self.topic == 'WAE':
 			self.KLD_func(self.fakes_enc,self.reals_enc)
 		else:
 			self.KLD_func(self.reals,self.fakes)
 
-			
 
 	def print_KLD(self):
 		path = self.metricpath
@@ -362,9 +361,9 @@ class GAN_Metrics():
 
 		vals = list(np.array(self.KLD_vec)[:,0])
 		locs = list(np.array(self.KLD_vec)[:,1])
-		if self.topic == 'ELeGANt':
-			if self.loss == 'FS' and self.latent_kind == 'AE':
-				locs = list(np.array(self.KLD_vec)[:,1] - self.AE_steps)
+		# if self.topic == 'ELeGANt':
+		# 	if self.loss == 'FS' and self.latent_kind == 'AE':
+		# 		locs = list(np.array(self.KLD_vec)[:,1] - self.AE_steps)
 		
 
 		with PdfPages(path+'KLD_plot.pdf') as pdf:

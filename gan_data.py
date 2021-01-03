@@ -183,7 +183,7 @@ class GAN_DATA_Base(GAN_DATA_ops):
 	def gen_func_g1(self):
 		self.MIN = -3.5
 		self.MAX = 10.5
-		g1 = tfp.distributions.TruncatedNormal(loc=7.0, scale=1.0, low=-20., high=20.)
+		g1 = tfp.distributions.TruncatedNormal(loc=self.data_mean, scale=self.data_var, low=-20., high=20.)
 		# g1 = tfp.distributions.TruncatedNormal(loc=1.0, scale=0.50, low=-20., high=20.)
 		return g1.sample([800*self.batch_size, 1])
 		# return tf.random.normal([1000*self.batch_size, 1], mean = 8.0, stddev = 1.)
