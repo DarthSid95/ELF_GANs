@@ -7,6 +7,54 @@ This is the Code submission accompanying the JMLR Submission "Euler Lagrange Ana
 
 This codebase consists of the TensorFlow2.0 implementation WGAN-FS and WAEFR, along with the baseline comparisons. Additionally, high-resolution counterparts of the figures presented in the paper are also included.  
 
+Dependencies can be installed via anaconda. The ``ELFGAN_GPU.yml`` file list the dependencies to setup the GPU system based environment: 
+
+```
+GPU accelerated TensorFlow2.0 Environment:
+- pip=20.0.2
+- python=3.6.10
+- cudatoolkit=10.1.243
+- cudnn=7.6.5
+- pip:
+    - absl-py==0.9.0
+    - h5py==2.10.0
+    - ipython==7.15.0
+    - ipython-genutils==0.2.0
+    - matplotlib==3.1.3
+    - numpy==1.18.1
+    - scikit-learn==0.22.1
+    - scipy==1.4.1
+    - tensorflow-gpu==2.2.0
+    - tensorboard==2.2.0
+    - tensorflow-addons
+    - tensorflow-estimator==2.2.0
+    - tqdm==4.42.1
+    - gdown==3.12
+```
+If a GPU is unavailable, the CPU only environment can be built  with ``ELFGAN_CPU.yml``. This setting is meant to run evaluation code. While the WGAN-FS codes could potentially be trained on the CPU, WAEFR training is not advisable.
+```
+CPU based TensorFlow2.0 Environment:
+- pip=20.0.2
+- python=3.6.10
+- pip:
+    - absl-py==0.9.0
+    - h5py==2.10.0
+    - ipython==7.15.0
+    - ipython-genutils==0.2.0
+    - matplotlib==3.1.3
+    - numpy==1.18.1
+    - scikit-learn==0.22.1
+    - scipy==1.4.1
+    - tensorboard==2.0.2
+    - tensorflow-addons==0.6.0
+    - tensorflow-datasets==3.0.1
+    - tensorflow-estimator==2.0.1
+    - tensorflow==2.0.0
+    - tensorflow-probability==0.8.0
+    - tqdm==4.42.1
+    - gdown==3.12
+```
+
 Codes were tested locally on the following system configurations:
 
 ```
@@ -93,7 +141,7 @@ MNIST and CIFAR-10 are loaded from TensorFlow-Datasets. The CelebA dataset (**1.
 ```
 python download_celeba.py
 ```
-Alternatively you can manually download the ``img_align_celeba`` folder and the ``list_attr_celeba.csv`` file, and save them at ``ELF_GANs/data/CelebA/``.
+Alternatively you can manually download [the ``img_align_celeba`` folder](https://drive.google.com/file/d/0B7EVK8r0v71pZjFTYXZWM3FlRnM/view?usp=sharing) from the official [CelebA website](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html). Additionally, [the ``list_attr_celeba.csv`` file](https://drive.google.com/file/d/0B7EVK8r0v71pblRyaVFSWGxPY0U/view?usp=sharing) can also be downloaded directly. Both must be saved at ``ELF_GANs/data/CelebA/``.
 
 Similarly, the Ukiyo-E dataset (**1.23 GB**) can be downloaded by running the following script (requires the ``gdown`` dependency. It can be installed manually, or is a part of the ELFGAN environment setup):
 ```
@@ -104,9 +152,23 @@ Alternatively, you can download the [official tarball]() from the [Ukiyo-E datas
 Finally, the SVHN dataset's aligned and cropped ``32x32`` mat file is used for training. This can be downloaded by running the following script:
 
 ```
-python download_SVHN.py
+python download_svhn.py
 ```
-Alternatively, you can directly download the [train_32x32.mat](http://ufldl.stanford.edu/housenumbers/train_32x32.mat) (And if needed for evaluation, [test_32x32.mat](http://ufldl.stanford.edu/housenumbers/test_32x32.mat)) file from the [SVHN website](http://ufldl.stanford.edu/housenumbers/), and placed in ``ELF_GAN/data/SVHN/''.
+Alternatively, you can directly download the [train_32x32.mat](http://ufldl.stanford.edu/housenumbers/train_32x32.mat) file (**182 MB**), and if needed for evaluation, [test_32x32.mat](http://ufldl.stanford.edu/housenumbers/test_32x32.mat) file (**61.3 MB**), from the [SVHN website](http://ufldl.stanford.edu/housenumbers/), and placed in ``ELF_GAN/data/SVHN/``.
+
+
+## Training  
+
+The code provides training procedure on synthetic Gaussians for WGAN-FS, along with the baseline WGAN with weight clipping, WGAN-GP, WGAN-LP and WGAN-ALP are included. For image data, the proposed WAEFR, and the WAE-GAN baseline with JS, KL, WGAN-LP and WGAN-ALP cost penalties are provided
+
+
+1) **Running ``train_*.sh`` bash files**: The fastest was to train a model is by running the bash files in ``ELF_GANs/bash_files/train/``. To train the Model for a given test case: Code to train each ``Figure X Subfig (y)`` is present in these files. Uncomment the desired command to train for the associated testcase. For example, to generate the discriminator function plot from Figure 1(a), the associated code can be uncommented in ``train_WGANFS.sh``, and the file can be run from the ``ELF_GAN`` folder as
+```
+bash bash_files/train/train_WGANFS.sh
+```
+2) **Manually running ``gam_main.py``**: Aternatively, you can train any model of your choice by running ``gan_main.py`` with custom flags and modifiers. The list of flags and their defauly values are are defined in  ``gan_main.py``.    
+
+3) **Training on Colab**: This code is capable of training models on Google Colab (although it is *not* optimized for this). For those familiar with the approach, this repository could be cloned to your google drive and steps (1) or (2) could be used for training. CelebA must be downloaded to you current instance on Colab as reading data from GoogleDrive currently causes a Timeout error.  Setting the flags ``--colab_data 1``,  ``--latex_plot_flag 0``, and ``--pbar_flag 0`` is advisable. The ``colab_data`` flag modifies CelebA, Ukiyo-E and SVHN data-handling code to read data from the local folder, rather than ``ELF_GANs/data/CelebA/``. Additionally, you may need to manually download the SVHN mat file, or the Ukiyo-E tarball to the target GoogleDrive folder.  The ``latex_plot_flag`` flag removes code dependency on latex for plot labels, since the Colab isntance does not native include this. (Alternatively, you could install texlive_full in your colab instance). Lastly, turning off the ``pbar_flag`` was found to prevent the browser from eating too much RAM when training the model. **The .ipynb file for training on Colab will be included with the public release of the paper**. 
 
 
 
