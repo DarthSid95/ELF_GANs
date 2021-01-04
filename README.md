@@ -88,12 +88,25 @@ discriminator_model_B = tf.keras.Model(inputs= [inputs, cos_terms, sin_terms, co
 
 ## Training Data
 
-MNIST, Fashion MNIST and CIFAR-10 are loaded from TensorFlow-Datasets. The CelebA dataset (**1.2GB**) can be downloaded by running the following code (requires ``wget`` dependency):
+MNIST and CIFAR-10 are loaded from TensorFlow-Datasets. The CelebA dataset (**1.2GB**) can be downloaded by running the following code (requires ``wget`` dependency):
 
 ```
 python download_celeba.py
 ```
 Alternatively you can manually download the ``img_align_celeba`` folder and the ``list_attr_celeba.csv`` file, and save them at ``ELF_GANs/data/CelebA/``.
+
+Similarly, the Ukiyo-E dataset (**1.23 GB**) can be downloaded by running the following script (requires the ``gdown`` dependency. It can be installed manually, or is a part of the ELFGAN environment setup):
+```
+python download_ukiyoe.py
+```
+Alternatively, you can download the [official tarball]() from the [Ukiyo-E dataset website](https://www.justinpinkney.com/ukiyoe-dataset/) and extract the ``ukiyoe-1024`` folder to ``ELF_GAN/data/UkiyoE/``.
+
+Finally, the SVHN dataset's aligned and cropped ``32x32`` mat file is used for training. This can be downloaded by running the following script:
+
+```
+python download_SVHN.py
+```
+Alternatively, you can directly download the [train_32x32.mat](http://ufldl.stanford.edu/housenumbers/train_32x32.mat) (And if needed for evaluation, [test_32x32.mat](http://ufldl.stanford.edu/housenumbers/test_32x32.mat)) file from the [SVHN website](http://ufldl.stanford.edu/housenumbers/), and placed in ``ELF_GAN/data/SVHN/''.
 
 
 
@@ -107,9 +120,9 @@ Please see the `LICENSE.txt` file for full informations.
 ----------------------------------
 
 **Siddarth Asokan**  
-**Robert Bosch Centre for Cyber Physical Systems **  
+**Robert Bosch Centre for Cyber Physical Systems**  
 **Indian Institute of Science**  
-**Bangalore, India **  
+**Bangalore, India**  
 **Email:** *siddartha@iisc.ac.in*
 
 ----------------------------------

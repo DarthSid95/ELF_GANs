@@ -11,3 +11,4 @@ if not os.path.exists(pwd+'/data'):
 if not os.path.exists(pwd+'/data/SVHN'):
 	os.mkdir(pwd+'/data/SVHN')
 os.system('wget -P '+pwd+'/data/SVHN/ http://ufldl.stanford.edu/housenumbers/train_32x32.mat')
+os.system('wget -P '+pwd+'/data/SVHN/ http://ufldl.stanford.edu/housenumbers/test_32x32.mat')
