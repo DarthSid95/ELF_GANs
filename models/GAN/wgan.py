@@ -440,9 +440,5 @@ class WGAN_Base(GAN_Base):
 
 	#####################################################################
 
-	def loss_AE(self):
-		mse = tf.keras.losses.MeanSquaredError()
-		loss_AE_reals = tf.reduce_mean(tf.abs(self.reals - self.reals_dec))#mse(self.reals, self.reals_dec)
-		self.AE_loss =  loss_AE_reals 
 
 
